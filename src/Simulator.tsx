@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v950";
-  const SIM_VERSION_NOTE = "Release notes (most recent first, one line each).\n\n\u2022 v950 \u2014 Flash A/B pane now shows the sensor / crop-in-pixels caption row (Sensor: W\u00d7H px (MP) \u00b7 cropped: \u2026) that side-by-side already had \u2014 it was missing under the flash canvas. Display-only, mirrors the shown system's binning/drizzle. Branches from v947 (v948/v949 abandoned).\n\n\u2022 v947 \u2014 Fix narrowband galaxy rendering all-green: the boosted red knots were inflating each channel's independent max-normalizer (knots normalized to white; the continuum's red divisor inflated ~3x more than green, shifting everything green). Under narrowband the galaxy now normalizes all three channels by ONE shared divisor (color preserved \u2014 shiny red knots, dim warm continuum) and pushes the knot hue toward pure H\u03b1 red (knotHuePurity=0.35). Broadband/uvircut unchanged.\n\n\u2022 v946 \u2014 Galaxy HII knots are now narrowband-aware: encode() boosts the H\u03b1 knot component by ha_pass/broadband_pass (1.0 uvircut, ~6 duoband, ~21 nb7) so narrowband keeps the knots bright while the continuum galaxy fades (H\u03b1-enhanced look) instead of dimming uniformly. CPU bake + cam-scale sampleAt; galaxy map cache now keyed by filter (GPU galaxy path inactive). Knot SNR under NB is a relative-appearance model (still rides broadband_pass).\n\nv942 \u2014 Optics-audit P0 fixes: Airy FWHM corrected (was 1.029\u00d71.22 \u03bb/D, 1.22\u00d7 too large; now 1.029 \u03bb/D) \u2014 sharper diffraction FWHM, tighter sampling verdicts, slightly smaller aperture gap at good seeing; SIM_VERSION_NOTE archive sentinel deduped (1024\u00d7 \u2192 1); dead mtfCurve() placeholder removed; in-app docs swept to match.\n\nv941 \u2014 Globular-cluster stars now resolve with higher-resolution systems: the sampler \u03c3 is resolution-adaptive (clamp(k\u00b7h, ~0.4\u2033, 1.8\u2033)), so a fine cam grid lets the cam-scale PSF set star size \u2014 a long-focal / large-aperture rig splits the core into points, while coarse grids clamp to 1.8\u2033 (wide-field / low-res look and bbNorm unchanged). JS + GPU gc shader in parity.\n\nv940 \u2014 Documentation rewritten from scratch: de-versioned, reflects current behaviour (Moffat/native-width star model \u221d 1/f-ratio\u00b2, stripe Contrast\u2194Resolution toggle, Flash A/B, green well-sampled cue, 8 GPU pipelines, crop 2\u2013100% default 50%). No engine changes.\n\nv939 \u2014 Star flux now includes the sensor QE factor (qe_peak/0.91), matching the nebula/sky signal scaling. Removes a ~10\u201320% over-brightness of stars vs the target on lower-QE sensors; how much stars stand out is now consistent across sensors too. Cosmetic on same-sensor comparisons.\n\nv938 \u2014 Matched-zoom FOV readout now shows on BOTH panes (side-by-side + flash), not just the cropped wider one: each pane labels its displayed field \u2014 \u201ccropped to W\u00d7H\u201d if smaller than its native FOV, else \u201cfull frame W\u00d7H\u201d. Fixes the asymmetry where the narrower reference system (long-focal scope at zoom-detail 1.0) showed no label.\n\nv937 \u2014 Star bloat f-ratio fix, corrected: the star's painted PEAK now uses the NATIVE PSF width, so wing brightness (the dominant visible bloat) carries native-pixel surface brightness \u221d 1/f-ratio\u00b2. A fast f/4 now blooms more than a slow f/12 of larger aperture at matched zoom. v936 only capped the core; the ceiling is back to plain full_well\u00b7sub_count.\n\nv936 \u2014 Star saturation/bloat is now f-ratio-correct: the full-well white-core clip fires at the NATIVE per-pixel peak (\u221d 1/f-ratio\u00b2) via a (\u03c3_native/\u03c3_display)\u00b2 ceiling scale, zoom-invariant. Fixes v932's aperture-only behaviour where at matched zoom the bigger-aperture but slower system bloated more (backwards). Now a fast f/4 blooms more than a slow f/12 of equal or larger aperture.\n\nv935 \u2014 Flash pane header now shows the \u201ccropped to W \u00d7 H\u201d FOV mention when zoomed, matching side-by-side (was missing).\n\nv934 \u2014 Analysis-table colour disambiguated: well-sampled cue is now green (was teal, which clashed with System B); Image/Object sub-headers neutral grey. Stripe section gains a Contrast\u2192resolution / Resolution\u2192contrast toggle (reverse table: 6 arcsec levels from the best PSF's 5%-contrast limit, +1\u2033 steps).\n\nv933 \u2014 Moved the 0.8\u2033 demo double from dead centre to (5\u2032,5\u2032), just off centre.\n\nv932 \u2014 Star full-well wired to the visible render: a star pixel reaching the sensor ceiling (full_well \u00d7 sub_count) now clips to white, so shallow-well sensors show larger blown cores and deep-well sensors hold tighter stars (was electron-buffer only, invisible). Tightest 0.8\u2033 demo double moved to field centre so it stays in view when zoomed.\n\nv931 \u2014 Removed dead code for the two v305-removed procedural targets (reflection nebula + classic spiral galaxy): both map generators, their local aliases, the unreachable colorMapDSO reflection/galaxy colour branches, the dispatcher routing, and the audit comments. ~21 KB reclaimed; no behavioural change (the isReflectionCore flag is retained \u2014 used by the live PN central-star probe avoidance).\n\nv100\u2013v919 \u2014 (archived) Full lineage in git history.";
+  const SIM_VERSION = "v954";
+  const SIM_VERSION_NOTE = "Release notes (most recent first, one line each).\n\n\u2022 v954 \u2014 Flash export: top caption now shows only the currently-displayed system (no more both-systems + \u25b6 arrow), so it swaps with the blink like the bottom row. Caption font reduced 30% (30\u219221px) so the image dominates the frame and fits an iPad photo viewer better.\n\n\u2022 v953 \u2014 Flash export is now a LOSSLESS animated PNG (APNG), not GIF: frames are pixel-identical to the on-screen canvas (GIF's 256-colour banding is gone), still looping with a 1.5s blink, built with the browser's native deflate so it stays fast. Top captions now carry the FULL parameter set for both systems (sensor, aperture/f/focal, filter, sub\u00d7count/integration, SQM, seeing, guide, FOV, bin/drizzle, obstruction, temp) with the active frame marked \u25b6; sampling-verdict and crop colours preserved. Downloads as .png.\n\n\u2022 v952 \u2014 Flash GIF export quality overhaul: frames are now native 1280px (no downscale), each frame gets its own optimized palette, and Floyd-Steinberg dithering removes the 256-colour banding \u2014 much closer to the on-screen image. Caption fonts ~3\u00d7 larger and the sampling verdict keeps its colour (green well / amber over / red under), crop tail amber, crop-FOV teal. Blink is now 1.5s (in-app and in the GIF).\n\n\u2022 v951 \u2014 Rendering-section captions: system headers now show focal length (aperture \u00b7 f/ratio \u00b7 focal mm) and the sensor row shows pixel size (\u00b7 N\u00b5m pixels), in both side-by-side and flash. Auto-blink slowed 0.5s \u2192 1s. New Flash 'Export GIF' button: a looping animated GIF blinking A\u2194B every 1s (self-contained median-cut + LZW encoder), with the same header/FOV and PSF/sampling/sensor captions baked into each frame.\n\n\u2022 v950 \u2014 Flash A/B pane now shows the sensor / crop-in-pixels caption row (Sensor: W\u00d7H px (MP) \u00b7 cropped: \u2026) that side-by-side already had \u2014 it was missing under the flash canvas. Display-only, mirrors the shown system's binning/drizzle. Branches from v947 (v948/v949 abandoned).\n\n\u2022 v947 \u2014 Fix narrowband galaxy rendering all-green: the boosted red knots were inflating each channel's independent max-normalizer (knots normalized to white; the continuum's red divisor inflated ~3x more than green, shifting everything green). Under narrowband the galaxy now normalizes all three channels by ONE shared divisor (color preserved \u2014 shiny red knots, dim warm continuum) and pushes the knot hue toward pure H\u03b1 red (knotHuePurity=0.35). Broadband/uvircut unchanged.\n\n\u2022 v946 \u2014 Galaxy HII knots are now narrowband-aware: encode() boosts the H\u03b1 knot component by ha_pass/broadband_pass (1.0 uvircut, ~6 duoband, ~21 nb7) so narrowband keeps the knots bright while the continuum galaxy fades (H\u03b1-enhanced look) instead of dimming uniformly. CPU bake + cam-scale sampleAt; galaxy map cache now keyed by filter (GPU galaxy path inactive). Knot SNR under NB is a relative-appearance model (still rides broadband_pass).\n\nv100\u2013v945 \u2014 (archived) Full lineage in git history; includes the v942 optics-audit Airy-FWHM 1.029 \u03bb/D correction. v943\u2013v949 were experiments, abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v950</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v954</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1064,7 +1064,7 @@ export default function DualSystemSimulator() {
 <p class="body"><b>Beneath each canvas</b> sit two caption rows. The first reports <i>PSF FWHM</i> (″), <i>pixel scale</i> (″/px), the <i>sampling verdict</i> (under / well / oversampled, colour-coded), and the <i>limiting magnitude</i>. The second reports the sensor's native pixel resolution (px and MP) and, in zoom-details mode, the <i>cropped equivalent</i> in sensor pixels — how many real sensor pixels cover the visible crop. Width and height fractions are computed independently from the per-system displayed FOV, so the label stays honest when one axis is sensor-limited and the other canvas-limited.</p>
 <dl class="controls">
   <dt>FOV mode: Native / Zoom details</dt><dd>Native shows each system at its own full sensor field. Zoom details crops both panels using the shared-pixel-scale rule and interpolates the camera image to the canvas — PixInsight-style. Outside the image rectangle, dark grey marks "no sensor footprint."</dd>
-  <dt>Compare: Side by side / Flash A/B</dt><dd><i>Side by side</i> is the classic two-panel layout. <i>Flash A/B</i> collapses to a single full-width pane showing one system at a time, toggled A↔B by the Showing button, the spacebar, or Auto-blink (every 0.5 s). The eye detects change under flicker far better than by spatial comparison — a blink-comparator view that makes faint-structure, noise-grain, and star-bloat differences pop. Both systems stay rendered the whole time; switching is an immediate canvas blit, never a re-render, and the header / sampling verdict / pixel scale / m<sub>lim</sub> swap to the shown system. For a true blink (only the differences move) keep <i>Match zoom</i> on so both show the same field; with it off you can still flash to compare native FOVs, and a warning notes the frame will shift. Stars and noise are independent realizations per system, so some flicker there is expected.</dd>
+  <dt>Compare: Side by side / Flash A/B</dt><dd><i>Side by side</i> is the classic two-panel layout. <i>Flash A/B</i> collapses to a single full-width pane showing one system at a time, toggled A↔B by the Showing button, the spacebar, or Auto-blink (every 1.5 s). The eye detects change under flicker far better than by spatial comparison — a blink-comparator view that makes faint-structure, noise-grain, and star-bloat differences pop. Both systems stay rendered the whole time; switching is an immediate canvas blit, never a re-render, and the header / sampling verdict / pixel scale / m<sub>lim</sub> swap to the shown system. For a true blink (only the differences move) keep <i>Match zoom</i> on so both show the same field; with it off you can still flash to compare native FOVs, and a warning notes the frame will shift. Stars and noise are independent realizations per system, so some flicker there is expected.</dd>
   <dt>Crop (2 / 5 / 10 / 20 / 30 / 50 / 100 %)</dt><dd>In zoom-details mode, sets the crop fraction of the smaller native FOV. 50 % is the default; the small fractions (2 %, 5 %) give the starkest aperture difference because the small aperture's recorded image gets visibly soft when magnified hard. There is no fraction above 100 % — you can't crop beyond the full field.</dd>
   <dt>Brightness mode: Shared / Equal brightness</dt><dd>Shared uses one common asinh stretch scale across both panels — the brighter system genuinely looks brighter. Equal brightness normalizes each system to its own peak so structure can be compared independent of absolute flux.</dd>
   <dt>Intensity (0.20× to 5.00×)</dt><dd>Log-symmetric slider; scales the asinh stretch input. Neutral mid-point at 1.00×. Reset returns to 1.00×. On a successful image upload it auto-sets to a gentle 0.40× to offset the already-stretched input.</dd>
@@ -11851,13 +11851,180 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     } catch (e) { /* source not yet painted */ }
   }, [compareMode, flashShow]);
 
+
+  // v953: Flash export is a LOSSLESS APNG (animated PNG) - pixel-identical to the
+  // canvas (no GIF 256-colour limit), still looping, 1.5s blink. Built with the
+  // browser's native deflate (CompressionStream) + a stored-block fallback. Top
+  // captions carry the full parameter set for BOTH systems; verdict/crop colours kept.
+  // Encoder validated via lossless round-trip + Pillow decode.
+  const [gifBusy, setGifBusy] = useState(false);
+  const _CRCT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function _crc32(bytes) { let c = 0xFFFFFFFF; for (let i = 0; i < bytes.length; i++) c = _CRCT[(c ^ bytes[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function _u32(v) { return new Uint8Array([(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]); }
+  function _chunk(type, data) {
+    const tb = new Uint8Array(4); for (let i = 0; i < 4; i++) tb[i] = type.charCodeAt(i);
+    const td = new Uint8Array(4 + data.length); td.set(tb, 0); td.set(data, 4);
+    return [_u32(data.length), td, _u32(_crc32(td))];
+  }
+  function _storedZlib(data) {
+    const out = [0x78, 0x01]; let i = 0;
+    while (i < data.length) { const n = Math.min(65535, data.length - i); const fin = (i + n >= data.length) ? 1 : 0;
+      out.push(fin, n & 255, (n >> 8) & 255, (~n) & 255, ((~n) >> 8) & 255);
+      for (let k = 0; k < n; k++) out.push(data[i + k]); i += n; }
+    let a = 1, b = 0; for (let k = 0; k < data.length;) { let n = Math.min(3000, data.length - k); while (n-- > 0) { a += data[k++]; b += a; } a %= 65521; b %= 65521; }
+    out.push((b >> 8) & 255, b & 255, (a >> 8) & 255, a & 255); return new Uint8Array(out);
+  }
+  async function _deflate(bytes) {
+    if (typeof CompressionStream !== "undefined") {
+      try {
+        const cs = new CompressionStream("deflate");
+        const w = cs.writable.getWriter(); w.write(bytes); w.close();
+        return new Uint8Array(await new Response(cs.readable).arrayBuffer());
+      } catch (e) { /* fall through to stored */ }
+    }
+    return _storedZlib(bytes);
+  }
+  async function _buildApng(W, H, framesRGBA, delayNum, delayDen) {
+    const pieces = []; pieces.push(new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]));
+    const ihdr = new Uint8Array(13); const dv = new DataView(ihdr.buffer);
+    dv.setUint32(0, W); dv.setUint32(4, H); ihdr[8] = 8; ihdr[9] = 2; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+    _chunk("IHDR", ihdr).forEach(p => pieces.push(p));
+    const actl = new Uint8Array(8); const av = new DataView(actl.buffer); av.setUint32(0, framesRGBA.length); av.setUint32(4, 0);
+    _chunk("acTL", actl).forEach(p => pieces.push(p));
+    let seq = 0;
+    for (let fi = 0; fi < framesRGBA.length; fi++) {
+      const fctl = new Uint8Array(26); const fv = new DataView(fctl.buffer);
+      fv.setUint32(0, seq++); fv.setUint32(4, W); fv.setUint32(8, H); fv.setUint32(12, 0); fv.setUint32(16, 0);
+      fv.setUint16(20, delayNum); fv.setUint16(22, delayDen); fctl[24] = 0; fctl[25] = 0;
+      _chunk("fcTL", fctl).forEach(p => pieces.push(p));
+      const d = framesRGBA[fi]; const raw = new Uint8Array(H * (1 + W * 3)); let o = 0;
+      for (let y = 0; y < H; y++) { raw[o++] = 0; const row = y * W * 4; for (let x = 0; x < W; x++) { const i = row + x * 4; raw[o++] = d[i]; raw[o++] = d[i + 1]; raw[o++] = d[i + 2]; } }
+      const comp = await _deflate(raw);
+      if (fi === 0) { _chunk("IDAT", comp).forEach(p => pieces.push(p)); }
+      else { const fd = new Uint8Array(4 + comp.length); new DataView(fd.buffer).setUint32(0, seq++); fd.set(comp, 4); _chunk("fdAT", fd).forEach(p => pieces.push(p)); }
+    }
+    _chunk("IEND", new Uint8Array(0)).forEach(p => pieces.push(p));
+    let tot = 0; for (const p of pieces) tot += p.length; const out = new Uint8Array(tot); let off = 0; for (const p of pieces) { out.set(p, off); off += p.length; }
+    return out;
+  }
+  const exportFlashGif = async () => {
+    const srcA = canvasARef.current, srcB = canvasBRef.current;
+    if (!srcA || !srcB) return;
+    setGifBusy(true);
+    try {
+      await new Promise(r => setTimeout(r, 30));
+      const GREY = "#9aa5bb", AMBER = "#d4a437";
+      const sysParamSegs = (which) => {
+        const fa = which === "A"; const sys = fa ? sysA : sysB; const d = fa ? dA : dB;
+        const col = fa ? "#d4a437" : "#5fb3a1"; const sen = SENSORS[sys.sensor];
+        const fr = (sys.focal_length_mm / sys.aperture_mm).toFixed(1);
+        const nsub = Math.max(1, Math.floor(sys.num_subs)); const ttot = sys.sub_length * nsub;
+        const integ = ttot >= 3600 ? (ttot / 3600).toFixed(1) + "h" : Math.round(ttot / 60) + "min";
+        const filt = (FILTERS[sys.filter] && FILTERS[sys.filter].label) || sys.filter;
+        const segs = [
+          { t: "System " + which, c: col },
+          { t: sen.name.split(' ')[0], c: col },
+          { t: sys.aperture_mm + "mm f/" + fr, c: col },
+          { t: sys.focal_length_mm + "mm", c: col },
+          { t: filt, c: col },
+          { t: sys.sub_length + "s\u00d7" + nsub + " = " + integ, c: col },
+          { t: "SQM " + sys.sqm.toFixed(1), c: col },
+          { t: "seeing " + sys.seeing_arcsec.toFixed(1) + "\u2033", c: col },
+          { t: "guide " + sys.guide_rms_arcsec.toFixed(1) + "\u2033", c: col },
+          { t: "FOV " + formatFOV(d.fov_w_arcmin) + " \u00d7 " + formatFOV(d.fov_h_arcmin), c: col },
+        ];
+        if ((sys.binning || 1) > 1) segs.push({ t: "bin " + sys.binning, c: col });
+        if ((sys.drizzle || 1) > 1) segs.push({ t: "drizzle " + sys.drizzle + "\u00d7", c: col });
+        if ((sys.obstruction_pct || 0) > 0) segs.push({ t: "obs " + sys.obstruction_pct + "%", c: col });
+        segs.push({ t: (sys.ambient_C >= 0 ? "+" : "") + sys.ambient_C + "\u00b0C", c: col });
+        return segs;
+      };
+      const psfSegs = (which) => {
+        const fa = which === "A"; const d = fa ? dA : dB;
+        const samp = fa ? sampA_eff : sampB_eff, bin = fa ? binFactorA : binFactorB;
+        const matched = samplingViewMode !== "native";
+        const ps = matched ? samp.effective_pixel_scale : d.pixel_scale;
+        const sr = matched ? samp.ratio : d.sampling_ratio;
+        const col = sr < 1.6 ? "#c95d4f" : sr > 4.0 ? "#d4a437" : "#5cb85c";
+        const verdict = sr < 1.6 ? "(undersampled)" : sr > 4.0 ? "(oversampled)" : "(well sampled)";
+        return [
+          { t: "PSF " + d.psf_fwhm_arcsec.toFixed(2) + "\u2033 FWHM", c: GREY },
+          { t: ps.toFixed(2) + "\u2033/px" + (matched && bin > 1.01 ? " \u00d7" + bin.toFixed(1) : ""), c: GREY },
+          { t: "Sampling " + sr.toFixed(1) + "px/FWHM " + verdict, c: col },
+          { t: "m_lim " + d.limiting_mag.toFixed(1), c: GREY },
+        ];
+      };
+      const sensorSegs = (which) => {
+        const fa = which === "A"; const d = fa ? dA : dB, sys = fa ? sysA : sysB;
+        const sen = SENSORS[sys.sensor]; const fullMP = ((sen.width_px * sen.height_px) / 1e6).toFixed(1);
+        const segs = [
+          { t: "Sensor " + sen.width_px + "\u00d7" + sen.height_px + " px (" + fullMP + " MP)", c: GREY },
+          { t: sen.pixel_um + "\u00b5m pixels", c: GREY },
+        ];
+        const binning = sys.binning || 1, drizzle = sys.drizzle || 1, effF = drizzle / binning;
+        if (matchZoom && activeMatchedFovArcmin != null && activeMatchedFovArcmin < d.fov_h_arcmin - 0.01) {
+          const disp = displayedFovForSystem(d);
+          const cW = Math.round(sen.width_px * (disp.dispW_arcmin / d.fov_w_arcmin) * effF);
+          const cH = Math.round(sen.height_px * (disp.dispH_arcmin / d.fov_h_arcmin) * effF);
+          const cMP = ((cW * cH) / 1e6).toFixed(2);
+          segs.push({ t: "cropped " + cW + "\u00d7" + cH + " px (" + cMP + " MP)", c: AMBER });
+        }
+        return segs;
+      };
+      const tlabel = (TARGETS[target] && TARGETS[target].label) || target;
+      const topRowsFor = (active) => [[{ t: "Target: " + tlabel, c: "#c3ccdb" }], sysParamSegs(active)];
+      const botRowsFor = (active) => [psfSegs(active), sensorSegs(active)];
+
+      const bodyF = 21, LH = 28, PAD = 24, GW = RW, maxTextW = GW - 2 * PAD, SEP = " \u00b7 ";
+      const wrap = (g, segs) => {
+        g.font = bodyF + "px monospace"; const sw = g.measureText(SEP).width;
+        const out = []; let cur = [], cw = 0;
+        for (const s of segs) { const w = g.measureText(s.t).width;
+          if (cur.length && cw + sw + w > maxTextW) { out.push(cur); cur = [s]; cw = w; }
+          else { if (cur.length) cw += sw; cur.push(s); cw += w; } }
+        if (cur.length) out.push(cur); return out;
+      };
+      const drawLine = (g, lineSegs, cy) => {
+        g.font = bodyF + "px monospace"; g.textBaseline = "middle"; g.textAlign = "left";
+        const sw = g.measureText(SEP).width;
+        let total = 0; lineSegs.forEach((s, i) => { if (i) total += sw; total += g.measureText(s.t).width; });
+        let x = (GW - total) / 2;
+        lineSegs.forEach((s, i) => { if (i) { g.fillStyle = "#46536b"; g.fillText(SEP, x, cy); x += sw; } g.fillStyle = s.c; g.fillText(s.t, x, cy); x += g.measureText(s.t).width; });
+      };
+      const meas = document.createElement("canvas").getContext("2d");
+      const countLines = (rows) => rows.reduce((n, segs) => n + wrap(meas, segs).length, 0);
+      const topLines = Math.max(countLines(topRowsFor("A")), countLines(topRowsFor("B")));
+      const botLines = Math.max(countLines(botRowsFor("A")), countLines(botRowsFor("B")));
+      const imgW = RW, imgH = RH;
+      const topH = PAD + topLines * LH + PAD, botH = PAD + botLines * LH + PAD, CH = topH + imgH + botH;
+      const buildFrame = (src, active) => {
+        const c = document.createElement("canvas"); c.width = GW; c.height = CH;
+        const g = c.getContext("2d");
+        g.fillStyle = "#0a1020"; g.fillRect(0, 0, GW, CH); g.imageSmoothingEnabled = false;
+        let cy = PAD + LH / 2;
+        for (const segs of topRowsFor(active)) for (const line of wrap(g, segs)) { drawLine(g, line, cy); cy += LH; }
+        g.drawImage(src, 0, 0, imgW, imgH, 0, topH, imgW, imgH);
+        cy = topH + imgH + PAD + LH / 2;
+        for (const segs of botRowsFor(active)) for (const line of wrap(g, segs)) { drawLine(g, line, cy); cy += LH; }
+        return g.getImageData(0, 0, GW, CH).data;
+      };
+      const fA = buildFrame(srcA, "A"), fB = buildFrame(srcB, "B");
+      const png = await _buildApng(GW, CH, [fA, fB], 3, 2);
+      const url = URL.createObjectURL(new Blob([png], { type: "image/png" }));
+      const a = document.createElement("a"); a.href = url; a.download = "flash_A-B_" + Date.now() + ".png";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) { console.error("APNG export failed", e); }
+    finally { setGifBusy(false); }
+  };
+
   // Repaint on shown-system change, mode entry, or render completion.
   useEffect(() => { paintFlash(); }, [paintFlash, lastRenderedSig, rendering]);
 
   // Auto-blink: toggle A↔B every 500 ms while flash + auto are active.
   useEffect(() => {
     if (compareMode !== "flash" || !flashAuto) return;
-    const id = setInterval(() => setFlashShow(s => (s === "A" ? "B" : "A")), 500);
+    const id = setInterval(() => setFlashShow(s => (s === "A" ? "B" : "A")), 1500);
     return () => clearInterval(id);
   }, [compareMode, flashAuto]);
 
@@ -14103,7 +14270,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   padding: "3px 10px", fontSize: 10, cursor: "pointer", borderRadius: 2,
                   fontFamily: "JetBrains Mono, monospace", fontWeight: flashAuto ? 600 : 400,
                 }}>Auto-blink {flashAuto ? "on" : "off"}</button>
-                <span style={{ fontSize: 9, color: "#6a7894" }}>spacebar toggles · blinks every 0.5s</span>
+                <button onClick={exportFlashGif} disabled={gifBusy} style={{
+                  background: gifBusy ? "rgba(212,164,55,0.25)" : "rgba(10, 16, 28, 0.6)",
+                  color: gifBusy ? "#d4a437" : "#9aa5bb",
+                  border: "1px solid rgba(96, 116, 156, 0.3)",
+                  padding: "3px 10px", fontSize: 10, cursor: gifBusy ? "default" : "pointer", borderRadius: 2,
+                  fontFamily: "JetBrains Mono, monospace", fontWeight: 400,
+                }}>{gifBusy ? "Building..." : "Export PNG loop (1.5s)"}</button>
+                <span style={{ fontSize: 9, color: "#6a7894" }}>spacebar toggles · blinks every 1.5s</span>
               </>
             )}
           </div>
@@ -14118,7 +14292,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
           <div style={{ display: compareMode === "flash" ? "none" : "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 10, flexWrap: "wrap", gap: 4 }}>
-                <span style={{ color: "#d4a437" }}>System A · {SENSORS[sysA.sensor].name.split(' ')[0]} · {sysA.aperture_mm}mm f/{(sysA.focal_length_mm/sysA.aperture_mm).toFixed(1)}</span>
+                <span style={{ color: "#d4a437" }}>System A · {SENSORS[sysA.sensor].name.split(' ')[0]} · {sysA.aperture_mm}mm · f/{(sysA.focal_length_mm/sysA.aperture_mm).toFixed(1)} · {sysA.focal_length_mm}mm</span>
                 <span style={{ color: "#9aa5bb" }}>
                   FOV {formatFOV(dA.fov_w_arcmin)} × {formatFOV(dA.fov_h_arcmin)}
                   {matchZoom && activeMatchedFovArcmin != null && (() => {
@@ -14203,7 +14377,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 }
                 return (
                   <div style={{ marginTop: 2, fontSize: 9, color: "#6a7894", textAlign: "center" }}>
-                    Sensor: <span style={{ color: "#9aa5bb" }}>{fullW}×{fullH} px ({fullMP} MP)</span>
+                    Sensor: <span style={{ color: "#9aa5bb" }}>{fullW}×{fullH} px ({fullMP} MP) · {sen.pixel_um}µm pixels</span>
                     {cropTxt && <span style={{ color: "#d4a437", marginLeft: 6 }}>{cropTxt}</span>}
                   </div>
                 );
@@ -14221,7 +14395,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             </div>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 10, flexWrap: "wrap", gap: 4 }}>
-                <span style={{ color: "#5fb3a1" }}>System B · {SENSORS[sysB.sensor].name.split(' ')[0]} · {sysB.aperture_mm}mm f/{(sysB.focal_length_mm/sysB.aperture_mm).toFixed(1)}</span>
+                <span style={{ color: "#5fb3a1" }}>System B · {SENSORS[sysB.sensor].name.split(' ')[0]} · {sysB.aperture_mm}mm · f/{(sysB.focal_length_mm/sysB.aperture_mm).toFixed(1)} · {sysB.focal_length_mm}mm</span>
                 <span style={{ color: "#9aa5bb" }}>
                   FOV {formatFOV(dB.fov_w_arcmin)} × {formatFOV(dB.fov_h_arcmin)}
                   {matchZoom && activeMatchedFovArcmin != null && (() => {
@@ -14298,7 +14472,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 }
                 return (
                   <div style={{ marginTop: 2, fontSize: 9, color: "#6a7894", textAlign: "center" }}>
-                    Sensor: <span style={{ color: "#9aa5bb" }}>{fullW}×{fullH} px ({fullMP} MP)</span>
+                    Sensor: <span style={{ color: "#9aa5bb" }}>{fullW}×{fullH} px ({fullMP} MP) · {sen.pixel_um}µm pixels</span>
                     {cropTxt && <span style={{ color: "#5fb3a1", marginLeft: 6 }}>{cropTxt}</span>}
                   </div>
                 );
@@ -14330,7 +14504,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             return (
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 10, flexWrap: "wrap", gap: 4 }}>
-                  <span style={{ color }}>System {flashShow} · {SENSORS[sys.sensor].name.split(' ')[0]} · {sys.aperture_mm}mm f/{(sys.focal_length_mm / sys.aperture_mm).toFixed(1)}</span>
+                  <span style={{ color }}>System {flashShow} · {SENSORS[sys.sensor].name.split(' ')[0]} · {sys.aperture_mm}mm · f/{(sys.focal_length_mm / sys.aperture_mm).toFixed(1)} · {sys.focal_length_mm}mm</span>
                   <span style={{ color: "#9aa5bb" }}>
                     FOV {formatFOV(d.fov_w_arcmin)} × {formatFOV(d.fov_h_arcmin)}
                     {matchZoom && activeMatchedFovArcmin != null && (() => {
@@ -14387,7 +14561,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   }
                   return (
                     <div style={{ marginTop: 2, fontSize: 9, color: "#6a7894", textAlign: "center" }}>
-                      Sensor: <span style={{ color: "#9aa5bb" }}>{fullW}×{fullH} px ({fullMP} MP)</span>
+                      Sensor: <span style={{ color: "#9aa5bb" }}>{fullW}×{fullH} px ({fullMP} MP) · {sen.pixel_um}µm pixels</span>
                       {cropTxt && <span style={{ color: "#d4a437", marginLeft: 6 }}>{cropTxt}</span>}
                     </div>
                   );
