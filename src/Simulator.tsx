@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v954";
-  const SIM_VERSION_NOTE = "Release notes (most recent first, one line each).\n\n\u2022 v954 \u2014 Flash export: top caption now shows only the currently-displayed system (no more both-systems + \u25b6 arrow), so it swaps with the blink like the bottom row. Caption font reduced 30% (30\u219221px) so the image dominates the frame and fits an iPad photo viewer better.\n\n\u2022 v953 \u2014 Flash export is now a LOSSLESS animated PNG (APNG), not GIF: frames are pixel-identical to the on-screen canvas (GIF's 256-colour banding is gone), still looping with a 1.5s blink, built with the browser's native deflate so it stays fast. Top captions now carry the FULL parameter set for both systems (sensor, aperture/f/focal, filter, sub\u00d7count/integration, SQM, seeing, guide, FOV, bin/drizzle, obstruction, temp) with the active frame marked \u25b6; sampling-verdict and crop colours preserved. Downloads as .png.\n\n\u2022 v952 \u2014 Flash GIF export quality overhaul: frames are now native 1280px (no downscale), each frame gets its own optimized palette, and Floyd-Steinberg dithering removes the 256-colour banding \u2014 much closer to the on-screen image. Caption fonts ~3\u00d7 larger and the sampling verdict keeps its colour (green well / amber over / red under), crop tail amber, crop-FOV teal. Blink is now 1.5s (in-app and in the GIF).\n\n\u2022 v951 \u2014 Rendering-section captions: system headers now show focal length (aperture \u00b7 f/ratio \u00b7 focal mm) and the sensor row shows pixel size (\u00b7 N\u00b5m pixels), in both side-by-side and flash. Auto-blink slowed 0.5s \u2192 1s. New Flash 'Export GIF' button: a looping animated GIF blinking A\u2194B every 1s (self-contained median-cut + LZW encoder), with the same header/FOV and PSF/sampling/sensor captions baked into each frame.\n\n\u2022 v950 \u2014 Flash A/B pane now shows the sensor / crop-in-pixels caption row (Sensor: W\u00d7H px (MP) \u00b7 cropped: \u2026) that side-by-side already had \u2014 it was missing under the flash canvas. Display-only, mirrors the shown system's binning/drizzle. Branches from v947 (v948/v949 abandoned).\n\n\u2022 v947 \u2014 Fix narrowband galaxy rendering all-green: the boosted red knots were inflating each channel's independent max-normalizer (knots normalized to white; the continuum's red divisor inflated ~3x more than green, shifting everything green). Under narrowband the galaxy now normalizes all three channels by ONE shared divisor (color preserved \u2014 shiny red knots, dim warm continuum) and pushes the knot hue toward pure H\u03b1 red (knotHuePurity=0.35). Broadband/uvircut unchanged.\n\n\u2022 v946 \u2014 Galaxy HII knots are now narrowband-aware: encode() boosts the H\u03b1 knot component by ha_pass/broadband_pass (1.0 uvircut, ~6 duoband, ~21 nb7) so narrowband keeps the knots bright while the continuum galaxy fades (H\u03b1-enhanced look) instead of dimming uniformly. CPU bake + cam-scale sampleAt; galaxy map cache now keyed by filter (GPU galaxy path inactive). Knot SNR under NB is a relative-appearance model (still rides broadband_pass).\n\nv100\u2013v945 \u2014 (archived) Full lineage in git history; includes the v942 optics-audit Airy-FWHM 1.029 \u03bb/D correction. v943\u2013v949 were experiments, abandoned.";
+  const SIM_VERSION = "v955";
+  const SIM_VERSION_NOTE = "Release notes (most recent first, one line each).\n\n\u2022 v955 \u2014 Flash export offers both PNG (lossless APNG, exact quality) and GIF (256-colour Floyd-Steinberg dithered, smaller/universal); both single-system captioned, 1.5s loop. Zoom-crop picker adds a 75% preset (2/5/10/20/30/50/75/100%).\n\n\u2022 v954 \u2014 Flash export caption shows only the currently-displayed system (swaps with the blink); caption font -30% so the image fits an iPad photo viewer better.\n\nv100\u2013v953 \u2014 (archived) Full lineage in git history: v942 optics-audit (Airy 1.029 \u03bb/D), v946/v947 narrowband-galaxy HII-knot rendering, v950 flash sensor-caption row, v951\u2013v953 Flash animated export evolution (GIF \u2192 dithered GIF \u2192 lossless APNG). v943\u2013v949 were experiments, abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v954</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v955</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -932,7 +932,7 @@ export default function DualSystemSimulator() {
 <h3 class="section"><span class="num">1.2</span>The dual-system concept</h3>
 <p class="body">The page is two independent columns, <b>System A</b> and <b>System B</b>. Each is a full imaging stack: telescope (aperture, focal length, obstruction), camera (from a catalog of modern CMOS sensors), filter (UV/IR cut, duoband, narrowband), site conditions (SQM / Bortle, seeing, temperature), guiding RMS, and acquisition (sub length, sub count, binning, drizzle).</p>
 <p class="body">Every downstream quantity — signal, noise, PSF, sampling, SNR, MTF, rendered image, optimal sub length — is computed independently for A and B and shown side by side. The visual comparison is the core deliverable; the indicators quantify it.</p>
-<p class="body"><b>Display controls.</b> Above the synthetic-image panel sit the global controls: a <b>brightness mode</b> toggle (<i>Shared</i> ties both stretches to one common scale so the brighter system genuinely looks brighter; <i>Equal brightness</i> normalizes each to its own peak so structure is comparable independent of absolute flux); an <b>FOV mode</b> toggle (<i>Native</i> shows each system at its own field; <i>Zoom details</i> crops both panels to a fraction of the smaller system's native field and upsamples — see §1.6); a <b>crop-fraction picker</b> (2 / 5 / 10 / 20 / 30 / 50 / 100 % of the smaller native FOV, default 50 %) for zoom-details mode; an <b>intensity slider</b> (0.20× to 5.00×, log-symmetric, neutral at 1.00×) that scales the asinh stretch input; and a <b>shadows slider</b> (range 0.40–1.60, default 1.00) that applies a post-stretch gamma γ = 2 − shadows (values &lt; 1.0 crush mid-tones, &gt; 1.0 lift them). Saturation and highlight-shaping knobs sit alongside them (§2.5).</p>
+<p class="body"><b>Display controls.</b> Above the synthetic-image panel sit the global controls: a <b>brightness mode</b> toggle (<i>Shared</i> ties both stretches to one common scale so the brighter system genuinely looks brighter; <i>Equal brightness</i> normalizes each to its own peak so structure is comparable independent of absolute flux); an <b>FOV mode</b> toggle (<i>Native</i> shows each system at its own field; <i>Zoom details</i> crops both panels to a fraction of the smaller system's native field and upsamples — see §1.6); a <b>crop-fraction picker</b> (2 / 5 / 10 / 20 / 30 / 50 / 75 / 100 % of the smaller native FOV, default 50 %) for zoom-details mode; an <b>intensity slider</b> (0.20× to 5.00×, log-symmetric, neutral at 1.00×) that scales the asinh stretch input; and a <b>shadows slider</b> (range 0.40–1.60, default 1.00) that applies a post-stretch gamma γ = 2 − shadows (values &lt; 1.0 crush mid-tones, &gt; 1.0 lift them). Saturation and highlight-shaping knobs sit alongside them (§2.5).</p>
 
 <h3 class="section"><span class="num">1.3</span>Targets</h3>
 <p class="body">The target catalog contains six procedural entries, each generated by a continuous function evaluable at any sky coordinate (§3.7):</p>
@@ -11907,12 +11907,79 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     let tot = 0; for (const p of pieces) tot += p.length; const out = new Uint8Array(tot); let off = 0; for (const p of pieces) { out.set(p, off); off += p.length; }
     return out;
   }
-  const exportFlashGif = async () => {
+  function _lzwEncode(minCodeSize, px) {
+    const out = []; let cur = 0, nb = 0;
+    const put = (c, l) => { cur |= c << nb; nb += l; while (nb >= 8) { out.push(cur & 255); cur = cur >>> 8; nb -= 8; } };
+    const clear = 1 << minCodeSize, eoi = clear + 1;
+    let size, next, dict; const reset = () => { dict = new Map(); size = minCodeSize + 1; next = eoi + 1; };
+    reset(); put(clear, size); let prefix = px[0];
+    for (let i = 1; i < px.length; i++) { const c = px[i]; const key = (prefix << 8) | c; const fnd = dict.get(key);
+      if (fnd !== undefined) { prefix = fnd; }
+      else { put(prefix, size);
+        if (next === 4096) { put(clear, size); reset(); }
+        else { dict.set(key, next); next++; if (next > (1 << size) && size < 12) size++; }
+        prefix = c; } }
+    put(prefix, size); put(eoi, size); if (nb > 0) out.push(cur & 255); return out;
+  }
+  function _subblocks(data, out) { let i = 0; while (i < data.length) { const n = Math.min(255, data.length - i); out.push(n); for (let k = 0; k < n; k++) out.push(data[i + k]); i += n; } out.push(0); }
+  function _gifPalette(data, W, H) {
+    const px = W * H, stride = Math.max(1, Math.floor(px / 18000)); const s = [];
+    for (let p = 0; p < px; p += stride) { const i = p * 4; s.push([data[i], data[i + 1], data[i + 2]]); }
+    let boxes = [{ pix: s }];
+    while (boxes.length < 256) {
+      let bi = -1, brg = -1, ax = 0;
+      for (let i = 0; i < boxes.length; i++) { const bx = boxes[i]; if (bx.pix.length < 2) continue;
+        const mn = [255, 255, 255], mx = [0, 0, 0];
+        for (const p of bx.pix) for (let a = 0; a < 3; a++) { if (p[a] < mn[a]) mn[a] = p[a]; if (p[a] > mx[a]) mx[a] = p[a]; }
+        for (let a = 0; a < 3; a++) { const r = mx[a] - mn[a]; if (r > brg) { brg = r; bi = i; ax = a; } } }
+      if (bi < 0) break;
+      const bx = boxes[bi]; bx.pix.sort((p, q) => p[ax] - q[ax]); const mid = bx.pix.length >> 1;
+      boxes.splice(bi, 1, { pix: bx.pix.slice(0, mid) }, { pix: bx.pix.slice(mid) });
+    }
+    const nC = boxes.length; const pal = new Uint8Array(768);
+    boxes.forEach((bx, i) => { let r = 0, g = 0, b = 0; for (const p of bx.pix) { r += p[0]; g += p[1]; b += p[2]; } const n = Math.max(1, bx.pix.length);
+      pal[i * 3] = Math.round(r / n); pal[i * 3 + 1] = Math.round(g / n); pal[i * 3 + 2] = Math.round(b / n); });
+    return { pal, nC };
+  }
+  function _quantizeOne(data, W, H) {
+    const qp = _gifPalette(data, W, H), pal = qp.pal, nC = qp.nC, px = W * H;
+    const cache = new Int16Array(262144).fill(-1);
+    const near = (r, g, b) => { const k = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2); const cc = cache[k]; if (cc >= 0) return cc;
+      let best = 0, bd = 1e9; for (let i = 0; i < nC; i++) { const dr = r - pal[i * 3], dg = g - pal[i * 3 + 1], db = b - pal[i * 3 + 2]; const d = dr * dr + dg * dg + db * db; if (d < bd) { bd = d; best = i; } } cache[k] = best; return best; };
+    const buf = new Float32Array(px * 3);
+    for (let p = 0; p < px; p++) { const i = p * 4; buf[p * 3] = data[i]; buf[p * 3 + 1] = data[i + 1]; buf[p * 3 + 2] = data[i + 2]; }
+    const idx = new Uint8Array(px); const cl = v => v < 0 ? 0 : v > 255 ? 255 : v;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const p = y * W + x; const r = cl(buf[p * 3]), g = cl(buf[p * 3 + 1]), b = cl(buf[p * 3 + 2]);
+      const ni = near(r | 0, g | 0, b | 0); idx[p] = ni;
+      const er = r - pal[ni * 3], eg = g - pal[ni * 3 + 1], eb = b - pal[ni * 3 + 2];
+      if (x + 1 < W) { const q = (p + 1) * 3; buf[q] += er * 7 / 16; buf[q + 1] += eg * 7 / 16; buf[q + 2] += eb * 7 / 16; }
+      if (y + 1 < H) {
+        if (x > 0) { const q = (p + W - 1) * 3; buf[q] += er * 3 / 16; buf[q + 1] += eg * 3 / 16; buf[q + 2] += eb * 3 / 16; }
+        const q3 = (p + W) * 3; buf[q3] += er * 5 / 16; buf[q3 + 1] += eg * 5 / 16; buf[q3 + 2] += eb * 5 / 16;
+        if (x + 1 < W) { const q4 = (p + W + 1) * 3; buf[q4] += er * 1 / 16; buf[q4 + 1] += eg * 1 / 16; buf[q4 + 2] += eb * 1 / 16; }
+      }
+    }
+    return { pal, idx };
+  }
+  function _buildGif(W, H, frames, delayCs) {
+    const q = frames.map(fr => _quantizeOne(fr, W, H));
+    const b = []; const w16 = v => { b.push(v & 255, (v >> 8) & 255); };
+    "GIF89a".split('').forEach(c => b.push(c.charCodeAt(0)));
+    w16(W); w16(H); b.push(0xF7, 0, 0);
+    for (let i = 0; i < 256; i++) b.push(q[0].pal[i * 3] || 0, q[0].pal[i * 3 + 1] || 0, q[0].pal[i * 3 + 2] || 0);
+    b.push(0x21, 0xFF, 0x0B); "NETSCAPE2.0".split('').forEach(c => b.push(c.charCodeAt(0))); b.push(0x03, 0x01, 0, 0, 0x00);
+    q.forEach((qq, fi) => {
+      b.push(0x21, 0xF9, 0x04, 0x04); w16(delayCs); b.push(0, 0x00);
+      b.push(0x2C); w16(0); w16(0); w16(W); w16(H);
+      if (fi === 0) { b.push(0x00); } else { b.push(0x87); for (let i = 0; i < 256; i++) b.push(qq.pal[i * 3] || 0, qq.pal[i * 3 + 1] || 0, qq.pal[i * 3 + 2] || 0); }
+      b.push(8); _subblocks(_lzwEncode(8, qq.idx), b);
+    });
+    b.push(0x3B); return new Uint8Array(b);
+  }
+  const buildFlashFrames = () => {
     const srcA = canvasARef.current, srcB = canvasBRef.current;
-    if (!srcA || !srcB) return;
-    setGifBusy(true);
-    try {
-      await new Promise(r => setTimeout(r, 30));
+    if (!srcA || !srcB) return null;
       const GREY = "#9aa5bb", AMBER = "#d4a437";
       const sysParamSegs = (which) => {
         const fa = which === "A"; const sys = fa ? sysA : sysB; const d = fa ? dA : dB;
@@ -12009,13 +12076,23 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         return g.getImageData(0, 0, GW, CH).data;
       };
       const fA = buildFrame(srcA, "A"), fB = buildFrame(srcB, "B");
-      const png = await _buildApng(GW, CH, [fA, fB], 3, 2);
-      const url = URL.createObjectURL(new Blob([png], { type: "image/png" }));
-      const a = document.createElement("a"); a.href = url; a.download = "flash_A-B_" + Date.now() + ".png";
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-    } catch (e) { console.error("APNG export failed", e); }
-    finally { setGifBusy(false); }
+      return { GW, CH, frames: [fA, fB] };
+  };
+  const _download = (bytes, mime, ext) => {
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+    const a = document.createElement("a"); a.href = url; a.download = "flash_A-B_" + Date.now() + ext;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+  const exportFlashPng = async () => {
+    setGifBusy(true);
+    try { await new Promise(r => setTimeout(r, 30)); const fr = buildFlashFrames(); if (!fr) return; const png = await _buildApng(fr.GW, fr.CH, fr.frames, 3, 2); _download(png, "image/png", ".png"); }
+    catch (e) { console.error("APNG export failed", e); } finally { setGifBusy(false); }
+  };
+  const exportFlashGif = async () => {
+    setGifBusy(true);
+    try { await new Promise(r => setTimeout(r, 30)); const fr = buildFlashFrames(); if (!fr) return; const gif = _buildGif(fr.GW, fr.CH, fr.frames, 150); _download(gif, "image/gif", ".gif"); }
+    catch (e) { console.error("GIF export failed", e); } finally { setGifBusy(false); }
   };
 
   // Repaint on shown-system change, mode entry, or render completion.
@@ -13843,7 +13920,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               {matchZoom && (
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 4 }}>
                   <span style={{ color: "#6a7894", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Crop</span>
-                  {[0.02, 0.05, 0.10, 0.20, 0.30, 0.50, 1.00].map(f => {
+                  {[0.02, 0.05, 0.10, 0.20, 0.30, 0.50, 0.75, 1.00].map(f => {
                     const active = Math.abs(zoomDetailFraction - f) < 0.001;
                     return (
                       <button key={f} onClick={() => setZoomDetailFraction(f)}
@@ -14270,13 +14347,20 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   padding: "3px 10px", fontSize: 10, cursor: "pointer", borderRadius: 2,
                   fontFamily: "JetBrains Mono, monospace", fontWeight: flashAuto ? 600 : 400,
                 }}>Auto-blink {flashAuto ? "on" : "off"}</button>
-                <button onClick={exportFlashGif} disabled={gifBusy} style={{
+                <button onClick={exportFlashPng} disabled={gifBusy} title="Lossless APNG - exact quality, larger file" style={{
                   background: gifBusy ? "rgba(212,164,55,0.25)" : "rgba(10, 16, 28, 0.6)",
                   color: gifBusy ? "#d4a437" : "#9aa5bb",
                   border: "1px solid rgba(96, 116, 156, 0.3)",
                   padding: "3px 10px", fontSize: 10, cursor: gifBusy ? "default" : "pointer", borderRadius: 2,
                   fontFamily: "JetBrains Mono, monospace", fontWeight: 400,
-                }}>{gifBusy ? "Building..." : "Export PNG loop (1.5s)"}</button>
+                }}>{gifBusy ? "Building..." : "Export PNG (1.5s)"}</button>
+                <button onClick={exportFlashGif} disabled={gifBusy} title="256-color GIF - smaller & universally supported, slight banding" style={{
+                  background: gifBusy ? "rgba(212,164,55,0.25)" : "rgba(10, 16, 28, 0.6)",
+                  color: gifBusy ? "#d4a437" : "#9aa5bb",
+                  border: "1px solid rgba(96, 116, 156, 0.3)",
+                  padding: "3px 10px", fontSize: 10, cursor: gifBusy ? "default" : "pointer", borderRadius: 2,
+                  fontFamily: "JetBrains Mono, monospace", fontWeight: 400,
+                }}>{gifBusy ? "Building..." : "Export GIF (1.5s)"}</button>
                 <span style={{ fontSize: 9, color: "#6a7894" }}>spacebar toggles · blinks every 1.5s</span>
               </>
             )}
