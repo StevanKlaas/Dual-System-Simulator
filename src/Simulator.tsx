@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v955";
-  const SIM_VERSION_NOTE = "Release notes (most recent first, one line each).\n\n\u2022 v955 \u2014 Flash export offers both PNG (lossless APNG, exact quality) and GIF (256-colour Floyd-Steinberg dithered, smaller/universal); both single-system captioned, 1.5s loop. Zoom-crop picker adds a 75% preset (2/5/10/20/30/50/75/100%).\n\n\u2022 v954 \u2014 Flash export caption shows only the currently-displayed system (swaps with the blink); caption font -30% so the image fits an iPad photo viewer better.\n\nv100\u2013v953 \u2014 (archived) Full lineage in git history: v942 optics-audit (Airy 1.029 \u03bb/D), v946/v947 narrowband-galaxy HII-knot rendering, v950 flash sensor-caption row, v951\u2013v953 Flash animated export evolution (GIF \u2192 dithered GIF \u2192 lossless APNG). v943\u2013v949 were experiments, abandoned.";
+  const SIM_VERSION = "v956";
+  const SIM_VERSION_NOTE = "Release notes (most recent first, one line each).\n\n\u2022 v956 \u2014 Side-by-side & flash top labels now show every system input (filter, sub\u00d7count/integration, SQM, seeing, guide, bin/drizzle, obstruction, temp) next to the sensor/aperture/f/focal; FOV stays in its span. PNG/GIF export gains cropped FOV up top when zoomed, and a probe-SNR row below (Bright/Medium/Faint per-pixel SNR).\n\n\u2022 v955 \u2014 Flash export offers both PNG (lossless APNG, exact quality) and GIF (256-colour Floyd-Steinberg dithered, smaller/universal); both single-system captioned, 1.5s loop. Zoom-crop picker adds a 75% preset (2/5/10/20/30/50/75/100%).\n\nv100\u2013v954 \u2014 (archived) Full lineage in git history: v942 optics-audit (Airy 1.029 \u03bb/D), v946/v947 narrowband-galaxy HII-knot rendering, v950 flash sensor-caption row, v951\u2013v953 Flash animated export evolution (GIF \u2192 dithered GIF \u2192 lossless APNG). v943\u2013v949 were experiments, abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v955</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v956</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1255,8 +1255,8 @@ export default function DualSystemSimulator() {
 <p class="body"><b>Emission nebula.</b> Two-tier dust density (FBM blend, softplus-floored) with a multi-scale chiseled contrast field (recursive domain warp, tier persistence 0.70, γ = 5.0, 3 % valley floor for a ~33:1 bright-to-dark ratio). Five illuminators (2 OIII-dominant, 3 Hα-dominant) modulate the channels via Gaussian falloff. A fine-detail layer adds 1–3″ brightness filaments carved by a steep contrast curve and gated by dust presence, so the aperture comparison has structure to resolve rather than only colour ratio-shifts.</p>
 <p class="body"><b>Globular cluster (ω Centauri-class).</b> A discrete star list rather than a continuous field. 12 000 stars sampled from a King radial profile (core r<sub>c</sub> = 1.2′, tidal r<sub>t</sub> = 27.5′, concentration c ≈ 1.36, tidal diameter 55′). Magnitudes follow an old-population luminosity function dN/dM ∝ 10<sup>0.3 M</sup> over V = 10.5–18.0. Population assignment is magnitude-binned: bright bins (V &lt; 11.8) draw from {AGB, RGB, HB, BS} with AGB dominant near the brightest; mid bins (11.8 ≤ V &lt; 14.0) shift to {HB, BS, RGB}; faint bins (14.0 ≤ V &lt; 15.5) mix HB / RGB / MS; faint-tail bins (V ≥ 15.5) are pure MS. The five CMD populations carry distinct ha/oiii/bb weights so blue HB/BS, yellow-orange RGB, deep-orange AGB, and white MS stars render as chromatically separable. Each star is drawn as a near-point Gaussian whose sampler width is resolution-adaptive: σ<sub>eff</sub> = clamp(k·h, σ<sub>min</sub> ≈ 0.4″, σ<sub>max</sub> = 1.8″) with h the cam-pixel half-step. On a fine cam grid (a long-focal, large-aperture rig) σ<sub>eff</sub> floors to σ<sub>min</sub> and the star is near-point, so the cam-scale PSF (aperture + seeing) sets the visible size and the core resolves into individual points; on a coarse grid it clamps to σ<sub>max</sub>, keeping the analytical box-Gaussian sampler out of the flat-block degeneracy and leaving the wide-field and low-resolution appearance unchanged. A 554×554 spatial grid (6″ cells) keeps <code>sampleAt</code> at O(1) per query. Joint normalization by the broadband peak preserves the actual Hα:bb ratio so AGB stars stay warm-tinted; the direct-RGB compositor then applies the ×1.8 saturation boost. This target is the headline test case for <b>star separation</b> (large aperture splits the core into points, small smears it into a bulb) and <b>saturation bloating</b> (the brightest few stars trigger the full-well white-clip).</p>
 <p class="body"><b>Spiral galaxy (with dust lanes; <code>galaxy_realistic</code>).</b> A high-fidelity port of the static gallery galaxy. Five surface components — Sérsic bulge, warm haze, arm-light bands modulated by FBM grain, Hα HII knots, blue clusters, white stellar lanes — plus a ridged-multifractal dust-extinction map. Each base pixel is a linear (R, G, B) triplet rather than an emission-line decomposition; the Hα HII-knot component is nonetheless tagged as line emission at compose time (v946), scaled by ha_pass / broadband_pass so narrowband filters keep the knots bright while the continuum fades. The bake runs at 4.87″/basepx into the 1280×800 grid (bake field 104′ × 65′), exposed via <code>bake_field_arcsec</code> so the renderer resamples at the correct scale, feeding the per-channel asinh stretch through the <code>broadband_rgb</code> mode (§3.6). Brightness multiplier M = 0.93. HII and cluster knot lists are precomputed on CPU and uploaded as storage buffers for the GPU shader.</p>
-<p class="body"><b>Jupiter look-alike (procedural disc).</b> A separate generator: semi-Lagrangian back-trace of a few flow steps through (a) a stochastic streamfunction of three FBM octaves, (b) noise-modulated asymmetric zonal jets varying in amplitude and phase with latitude, and (c) a Great-Red-Spot vortex (Gaussian envelope with a spin term and angular dependence). The traced (longitude, latitude) is evaluated against the latitude-Gaussian band palette (9 named bands), a bright-zone whitening lift, polar collar darkening, and the GRS overlay. Each disc pixel gets a limb-darkening factor μ<sup>1.58</sup> (μ = cos emission angle) and a soft-edge coverage weight so the limb anti-aliases cleanly. The (R, G, B) output feeds the direct-RGB pipeline. The disc is fixed at 50″; the bake covers 96″ × 60″ at 0.075″/basepx. The display is forced to the bake's 60″ field, ignoring the native FOV, with the crop size shown on the canvas label.</p>
-<p class="body"><b>Planetary nebula (hard-chisel).</b> Polar ridged-multifractal angular asymmetry on a ring profile (radius 32, thickness 14 px). Central Hα/OIII split (cyan core → red rim via smoothstep on r). Three layers of arcsec-scale fine detail carve the ring — fine radial striae, fine knots, outer-ring red striae — pushed through steep contrast curves (powers 3.0–3.4) with a threshold cut at 0.22–0.30 so only crests survive and dark gaps deepen between filament threads. The halo profile is finely ridged as well. The net effect is chiseled high-contrast 1–3″ structure that a large aperture resolves crisply and a small aperture smears. The model has a coordinate singularity at r = 0 (the bake centre, where ang = atan2(0, 0) is undefined and the angular modulation jumps across the negative-x axis); the cam-sampling grid is shifted by +0.5 cam-pixels in both x and y so no cam pixel can land at exact r = 0 for any (sensor, focal, zoom) combination, with the JS fallback using the same offset for parity. See §4.6 for the failure mode this guards against.</p>
+<p class="body"><b>Jupiter look-alike (procedural disc).</b> Semi-Lagrangian flow over a stochastic streamfunction with asymmetric zonal jets and a Great-Red-Spot vortex, mapped to a 9-band latitude palette with limb darkening; disc fixed at 50″, bake 96″×60″ @ 0.075″/basepx, display forced to the 60″ field. Direct-RGB pipeline. (Full generator internals in git history.)</p>
+<p class="body"><b>Planetary nebula (hard-chisel).</b> Polar ridged-multifractal ring (radius 32, thickness 14 px) with Hα/OIII core-to-rim split and three layers of arcsec-scale detail pushed through steep contrast/threshold curves, giving chiseled 1–3″ structure. The r=0 singularity is guarded by a +0.5 cam-px grid shift (JS parity). (Full internals in git; see §4.6.)</p>
 <p class="body"><b>Moon.</b> A disc target with deterministic positional features at real selenographic coordinates: 11 anchored maria, 5 named featured craters with the Tycho + Copernicus ray systems unrolled, plus ~4000 procedural craters density-weighted to highland regions. Sun direction −0.8 rad gives the gibbous-phase terminator on the lower-left. Output is single-channel broadband Float32 with a dedicated linear-to-RGB grey map (mono pipeline, no Bayer split). The bake runs once per session and is cached.</p>
 
 <h3 class="section"><span class="num">3.8</span>Camera-scale rendering</h3>
@@ -6236,6 +6236,24 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     snr_bright:    dB.snr_bright    * binFactorB,
     snr_medium:    dB.snr_medium    * binFactorB,
     snr_faint:     dB.snr_faint     * binFactorB,
+  };
+  // v956: full system-input string for the side-by-side / flash top labels (FOV is
+  // shown in the adjacent span). Adds filter, integration, site conditions, bin/drizzle.
+  const sysTopLabel = (sys) => {
+    const sen = SENSORS[sys.sensor];
+    const fr = (sys.focal_length_mm / sys.aperture_mm).toFixed(1);
+    const nsub = Math.max(1, Math.floor(sys.num_subs));
+    const ttot = sys.sub_length * nsub;
+    const integ = ttot >= 3600 ? (ttot / 3600).toFixed(1) + "h" : Math.round(ttot / 60) + "min";
+    const filt = (FILTERS[sys.filter] && FILTERS[sys.filter].label) || sys.filter;
+    let s = sen.name.split(' ')[0] + " \u00b7 " + sys.aperture_mm + "mm \u00b7 f/" + fr + " \u00b7 " + sys.focal_length_mm + "mm \u00b7 " + filt
+      + " \u00b7 " + sys.sub_length + "s\u00d7" + nsub + " = " + integ
+      + " \u00b7 SQM " + sys.sqm.toFixed(1) + " \u00b7 seeing " + sys.seeing_arcsec.toFixed(1) + "\u2033 \u00b7 guide " + sys.guide_rms_arcsec.toFixed(1) + "\u2033";
+    if ((sys.binning || 1) > 1) s += " \u00b7 bin " + sys.binning;
+    if ((sys.drizzle || 1) > 1) s += " \u00b7 drizzle " + sys.drizzle + "\u00d7";
+    if ((sys.obstruction_pct || 0) > 0) s += " \u00b7 obs " + sys.obstruction_pct + "%";
+    s += " \u00b7 " + (sys.ambient_C >= 0 ? "+" : "") + sys.ambient_C + "\u00b0C";
+    return s;
   };
 
   // ============================================================
@@ -12000,6 +12018,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
           { t: "guide " + sys.guide_rms_arcsec.toFixed(1) + "\u2033", c: col },
           { t: "FOV " + formatFOV(d.fov_w_arcmin) + " \u00d7 " + formatFOV(d.fov_h_arcmin), c: col },
         ];
+        if (matchZoom && activeMatchedFovArcmin != null && activeMatchedFovArcmin < d.fov_h_arcmin - 0.01) {
+          const disp = displayedFovForSystem(d);
+          segs.push({ t: "cropped " + formatFOV(disp.dispW_arcmin) + " \u00d7 " + formatFOV(disp.dispH_arcmin), c: "#5fb3a1" });
+        }
         if ((sys.binning || 1) > 1) segs.push({ t: "bin " + sys.binning, c: col });
         if ((sys.drizzle || 1) > 1) segs.push({ t: "drizzle " + sys.drizzle + "\u00d7", c: col });
         if ((sys.obstruction_pct || 0) > 0) segs.push({ t: "obs " + sys.obstruction_pct + "%", c: col });
@@ -12038,9 +12060,19 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         }
         return segs;
       };
+      const snrSegs = (which) => {
+        const s = which === "A" ? snrDisplayA : snrDisplayB;
+        const col = which === "A" ? "#d4a437" : "#5fb3a1";
+        return [
+          { t: "per-pixel SNR", c: GREY },
+          { t: "Bright " + Math.round(s.snr_bright), c: col },
+          { t: "Medium " + Math.round(s.snr_medium), c: "#9aa5bb" },
+          { t: "Faint " + Math.round(s.snr_faint), c: "#7a879e" },
+        ];
+      };
       const tlabel = (TARGETS[target] && TARGETS[target].label) || target;
       const topRowsFor = (active) => [[{ t: "Target: " + tlabel, c: "#c3ccdb" }], sysParamSegs(active)];
-      const botRowsFor = (active) => [psfSegs(active), sensorSegs(active)];
+      const botRowsFor = (active) => [psfSegs(active), sensorSegs(active), snrSegs(active)];
 
       const bodyF = 21, LH = 28, PAD = 24, GW = RW, maxTextW = GW - 2 * PAD, SEP = " \u00b7 ";
       const wrap = (g, segs) => {
@@ -14347,14 +14379,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   padding: "3px 10px", fontSize: 10, cursor: "pointer", borderRadius: 2,
                   fontFamily: "JetBrains Mono, monospace", fontWeight: flashAuto ? 600 : 400,
                 }}>Auto-blink {flashAuto ? "on" : "off"}</button>
-                <button onClick={exportFlashPng} disabled={gifBusy} title="Lossless APNG - exact quality, larger file" style={{
+                <button onClick={exportFlashPng} disabled={gifBusy} style={{
                   background: gifBusy ? "rgba(212,164,55,0.25)" : "rgba(10, 16, 28, 0.6)",
                   color: gifBusy ? "#d4a437" : "#9aa5bb",
                   border: "1px solid rgba(96, 116, 156, 0.3)",
                   padding: "3px 10px", fontSize: 10, cursor: gifBusy ? "default" : "pointer", borderRadius: 2,
                   fontFamily: "JetBrains Mono, monospace", fontWeight: 400,
                 }}>{gifBusy ? "Building..." : "Export PNG (1.5s)"}</button>
-                <button onClick={exportFlashGif} disabled={gifBusy} title="256-color GIF - smaller & universally supported, slight banding" style={{
+                <button onClick={exportFlashGif} disabled={gifBusy} style={{
                   background: gifBusy ? "rgba(212,164,55,0.25)" : "rgba(10, 16, 28, 0.6)",
                   color: gifBusy ? "#d4a437" : "#9aa5bb",
                   border: "1px solid rgba(96, 116, 156, 0.3)",
@@ -14376,7 +14408,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
           <div style={{ display: compareMode === "flash" ? "none" : "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 10, flexWrap: "wrap", gap: 4 }}>
-                <span style={{ color: "#d4a437" }}>System A · {SENSORS[sysA.sensor].name.split(' ')[0]} · {sysA.aperture_mm}mm · f/{(sysA.focal_length_mm/sysA.aperture_mm).toFixed(1)} · {sysA.focal_length_mm}mm</span>
+                <span style={{ color: "#d4a437" }}>System A · {sysTopLabel(sysA)}</span>
                 <span style={{ color: "#9aa5bb" }}>
                   FOV {formatFOV(dA.fov_w_arcmin)} × {formatFOV(dA.fov_h_arcmin)}
                   {matchZoom && activeMatchedFovArcmin != null && (() => {
@@ -14479,7 +14511,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             </div>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 10, flexWrap: "wrap", gap: 4 }}>
-                <span style={{ color: "#5fb3a1" }}>System B · {SENSORS[sysB.sensor].name.split(' ')[0]} · {sysB.aperture_mm}mm · f/{(sysB.focal_length_mm/sysB.aperture_mm).toFixed(1)} · {sysB.focal_length_mm}mm</span>
+                <span style={{ color: "#5fb3a1" }}>System B · {sysTopLabel(sysB)}</span>
                 <span style={{ color: "#9aa5bb" }}>
                   FOV {formatFOV(dB.fov_w_arcmin)} × {formatFOV(dB.fov_h_arcmin)}
                   {matchZoom && activeMatchedFovArcmin != null && (() => {
@@ -14588,7 +14620,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             return (
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 10, flexWrap: "wrap", gap: 4 }}>
-                  <span style={{ color }}>System {flashShow} · {SENSORS[sys.sensor].name.split(' ')[0]} · {sys.aperture_mm}mm · f/{(sys.focal_length_mm / sys.aperture_mm).toFixed(1)} · {sys.focal_length_mm}mm</span>
+                  <span style={{ color }}>System {flashShow} · {sysTopLabel(sys)}</span>
                   <span style={{ color: "#9aa5bb" }}>
                     FOV {formatFOV(d.fov_w_arcmin)} × {formatFOV(d.fov_h_arcmin)}
                     {matchZoom && activeMatchedFovArcmin != null && (() => {
