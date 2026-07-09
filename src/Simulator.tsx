@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v956";
-  const SIM_VERSION_NOTE = "Release notes (most recent first, one line each).\n\n\u2022 v956 \u2014 Side-by-side & flash top labels now show every system input (filter, sub\u00d7count/integration, SQM, seeing, guide, bin/drizzle, obstruction, temp) next to the sensor/aperture/f/focal; FOV stays in its span. PNG/GIF export gains cropped FOV up top when zoomed, and a probe-SNR row below (Bright/Medium/Faint per-pixel SNR).\n\n\u2022 v955 \u2014 Flash export offers both PNG (lossless APNG, exact quality) and GIF (256-colour Floyd-Steinberg dithered, smaller/universal); both single-system captioned, 1.5s loop. Zoom-crop picker adds a 75% preset (2/5/10/20/30/50/75/100%).\n\nv100\u2013v954 \u2014 (archived) Full lineage in git history: v942 optics-audit (Airy 1.029 \u03bb/D), v946/v947 narrowband-galaxy HII-knot rendering, v950 flash sensor-caption row, v951\u2013v953 Flash animated export evolution (GIF \u2192 dithered GIF \u2192 lossless APNG). v943\u2013v949 were experiments, abandoned.";
+  const SIM_VERSION = "v957";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v957 \u2014 Added a 'Download Source Code File: Simulator.tsx' link in the app header, linking to the GitHub source.\n\nv100\u2013v956 \u2014 (archived) Full lineage in git history: v942 optics-audit (Airy 1.029 \u03bb/D), v946/v947 narrowband-galaxy HII knots, v950\u2013v956 Flash export & captions (dual PNG lossless-APNG / dithered GIF, cropped-FOV, probe-SNR row, full system-input labels) plus a 75% zoom-crop preset. v943\u2013v949 were experiments, abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v956</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v957</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -12930,6 +12930,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               }}>
                 {SIM_VERSION}
               </span>
+              <a href="https://github.com/StevanKlaas/Dual-System-Simulator/blob/main/src/Simulator.tsx" target="_blank" rel="noopener noreferrer" style={{ color: "#5fb3a1", fontSize: 10, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.05em", textDecoration: "none", borderBottom: "1px solid rgba(95, 179, 161, 0.4)" }}>Download Source Code File: Simulator.tsx</a>
               {/* v700 Phase B.1: GPU status pill. Two slots: device init and
                   the PN compute pipeline. When both are green the cam-scale
                   source-sampling JS loop is replaced by a WGSL dispatch for
