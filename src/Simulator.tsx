@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v963";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v963 \u2014 Fixed the detection-fraction readout showing blank/no number: the detHist memo ran before procMapCache/getCachedMap were initialised (temporal dead zone), so getDSOTarget threw and it fell back to null. Moved it below getDSOTarget. Made the per-system 'Detected % of target' a prominent boxed metric with a large number.\n\n\u2022 v962 \u2014 Documented SNR/arcsec\u00b2, \u00d7N and detection-fraction in \u00a72.6; added a '?' help popover on the detection line.\n\n\u2022 v960\u2013v961 \u2014 SNR/arcsec\u00b2 prominent block + \u00d7N multipliers; detection-fraction metric; dead GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v964";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v964 \u2014 Detection '?' help popover was clipped by the section bounds (position:absolute); switched it to a fixed, centred panel with a tap-to-dismiss backdrop (also iPad-friendly).\n\n\u2022 v963 \u2014 Fixed the detection-fraction readout showing blank/no number: the detHist memo ran before procMapCache/getCachedMap were initialised (temporal dead zone), so getDSOTarget threw and it fell back to null. Moved it below getDSOTarget. Made the per-system 'Detected % of target' a prominent boxed metric with a large number.\n\n\u2022 v962 \u2014 Documented SNR/arcsec\u00b2, \u00d7N and detection-fraction in \u00a72.6; added a '?' help popover on the detection line.\n\n\u2022 v960\u2013v961 \u2014 SNR/arcsec\u00b2 prominent block + \u00d7N multipliers; detection-fraction metric; dead GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v963</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v964</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -14430,11 +14430,18 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 <span>Detected above 3σ (per seeing disk): <span style={{ color: "#d4a437" }}>A {pa.toFixed(0)}%</span> · <span style={{ color: "#5fb3a1" }}>B {pb.toFixed(0)}%</span> of the target</span>
                 <button onClick={() => setShowDetHelp(s => !s)} title="What does 'Detected % of target' mean?" style={{ background: showDetHelp ? "#5fb3a1" : "rgba(10, 16, 28, 0.6)", color: showDetHelp ? "#0a1020" : "#6a7894", border: `1px solid ${showDetHelp ? "#5fb3a1" : "rgba(96, 116, 156, 0.3)"}`, width: 15, height: 15, padding: 0, fontFamily: "JetBrains Mono, monospace", fontSize: 10, cursor: "pointer", borderRadius: "50%", fontWeight: 600, lineHeight: 1, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>?</button>
                 {showDetHelp && (
-                  <div style={{ position: "absolute", top: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", width: 520, maxWidth: "calc(100vw - 40px)", zIndex: 50, padding: "12px 14px", background: "rgba(10, 16, 28, 0.97)", border: "1px solid rgba(95, 179, 161, 0.4)", borderRadius: 3, fontSize: 10, fontFamily: "JetBrains Mono, monospace", color: "#c8d0dc", lineHeight: 1.6, whiteSpace: "normal", textAlign: "left", boxShadow: "0 6px 20px rgba(0, 0, 0, 0.5)" }}>
-                    <div style={{ color: "#5fb3a1", fontWeight: 600, marginBottom: 6 }}>Detected % of target — what this is</div>
-                    The fraction of the target's <b>area</b> whose surface brightness clears a <b>3σ</b> threshold, judged per <b>seeing disk</b> (resolution element), not per pixel. The noise-free source is histogrammed into A(f) = fraction of object pixels (above a 0.1%-of-peak isophote) at brightness ≥ f·peak. Each system's threshold is f<sub>thresh</sub> = 3 / (√N<sub>disk</sub> · SNR<sub>bright</sub>), N<sub>disk</sub> = π(FWHM/2)² / pixscale² — set by <b>aperture × time × seeing</b>, independent of pixel size or binning. The readout is A(f<sub>thresh</sub>).
-                    <div style={{ marginTop: 6, color: "#9aa5bb" }}>A(f) is object-intrinsic, so the A/B gap is pure depth: two rigs with identical per-pixel SNR can detect very different fractions if apertures differ. Most reliable as the <b>A-vs-B</b> figure, or on an <b>uploaded FITS</b> (real sky); on procedural targets the absolute % reflects the model's faint end. Base broadband source — exact for same-filter A/B. (§2.6)</div>
-                  </div>
+                  <>
+                    <div onClick={() => setShowDetHelp(false)} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0, 0, 0, 0.45)" }} />
+                    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 1000, width: 540, maxWidth: "calc(100vw - 32px)", maxHeight: "80vh", overflowY: "auto", padding: "16px 18px", background: "rgba(10, 16, 28, 0.98)", border: "1px solid rgba(95, 179, 161, 0.5)", borderRadius: 4, fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: "#c8d0dc", lineHeight: 1.65, whiteSpace: "normal", textAlign: "left", boxShadow: "0 10px 40px rgba(0, 0, 0, 0.6)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ color: "#5fb3a1", fontWeight: 600 }}>Detected % of target — what this is</span>
+                        <button onClick={() => setShowDetHelp(false)} style={{ background: "transparent", border: "none", color: "#8b96a8", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "0 2px" }}>×</button>
+                      </div>
+                      The fraction of the target's <b>area</b> whose surface brightness clears a <b>3σ</b> threshold, judged per <b>seeing disk</b> (resolution element), not per pixel. The noise-free source is histogrammed into A(f) = fraction of object pixels (above a 0.1%-of-peak isophote) at brightness ≥ f·peak. Each system's threshold is f<sub>thresh</sub> = 3 / (√N<sub>disk</sub> · SNR<sub>bright</sub>), N<sub>disk</sub> = π(FWHM/2)² / pixscale² — set by <b>aperture × time × seeing</b>, independent of pixel size or binning. The readout is A(f<sub>thresh</sub>).
+                      <div style={{ marginTop: 8, color: "#9aa5bb" }}>A(f) is object-intrinsic, so the A/B gap is pure depth: two rigs with identical per-pixel SNR can detect very different fractions if apertures differ. Most reliable as the <b>A-vs-B</b> figure, or on an <b>uploaded FITS</b> (real sky); on procedural targets the absolute % reflects the model's faint end. Base broadband source — exact for same-filter A/B. (§2.6)</div>
+                      <div style={{ marginTop: 8, fontSize: 9, color: "#6a7894", textAlign: "center" }}>tap outside or × to close</div>
+                    </div>
+                  </>
                 )}
               </div>
             ); })()}
