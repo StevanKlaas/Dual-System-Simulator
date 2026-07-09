@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v962";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v962 \u2014 Documented the new SNR/arcsec\u00b2, \u00d7N-multiplier and detection-fraction readouts in \u00a72.6, and added a tap-to-open '?' help popover beside the 'Detected % of target' comparison line explaining the per-seeing-disk k\u03c3 method and its caveats.\n\n\u2022 v961 \u2014 Detection-fraction metric ('% of target detected above 3\u03c3', panel + A/B line + export), from a baked-source cumulative-area histogram and a per-seeing-disk threshold.\n\n\u2022 v960 \u2014 SNR/arcsec\u00b2 prominent block with \u00d7N multipliers (panel + export); dead GPU galaxy path removed (~20 KB).\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v963";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v963 \u2014 Fixed the detection-fraction readout showing blank/no number: the detHist memo ran before procMapCache/getCachedMap were initialised (temporal dead zone), so getDSOTarget threw and it fell back to null. Moved it below getDSOTarget. Made the per-system 'Detected % of target' a prominent boxed metric with a large number.\n\n\u2022 v962 \u2014 Documented SNR/arcsec\u00b2, \u00d7N and detection-fraction in \u00a72.6; added a '?' help popover on the detection line.\n\n\u2022 v960\u2013v961 \u2014 SNR/arcsec\u00b2 prominent block + \u00d7N multipliers; detection-fraction metric; dead GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v962</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v963</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -5792,40 +5792,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     snr_medium:    dB.snr_medium    * binFactorB,
     snr_faint:     dB.snr_faint     * binFactorB,
   };
-  // v961: detection-fraction metric. Histogram the baked noise-free source
-  // (getDSOTarget ha+oiii+bb) into a cumulative area function A(f) = fraction of
-  // object pixels (above a 0.1%-of-peak isophote) with surface brightness >= f*peak.
-  // Per system the kσ threshold is f_thresh = k / (sqrt(N_seeingdisk)*snr_bright),
-  // N_seeingdisk = π(FWHM/2)²/native_pixscale² (scale-invariant). detFrac(f_thresh)
-  // = % of the target detected. A(f) is object-intrinsic, so the A/B gap is pure depth
-  // (aperture × time). Uses the base (broadband) source: exact for same-filter A/B,
-  // indicative under differing narrowband filters.
-  const detHist = useMemo(() => {
-    try {
-      const m = getDSOTarget(target, false, 1);
-      const ha = m && m.ha, oi = m && m.oiii, bb = m && m.bb;
-      if (!ha || !bb) return null;
-      const N = ha.length; const L = new Float32Array(N); let peak = 0;
-      for (let i = 0; i < N; i++) { const v = (ha[i] || 0) + (oi ? (oi[i] || 0) : 0) + (bb[i] || 0); L[i] = v; if (v > peak) peak = v; }
-      if (peak <= 0) return null;
-      const ISO = 0.001, isoCut = ISO * peak, BINS = 512, logMin = Math.log(ISO), inv = BINS / (0 - logMin);
-      const hist = new Float64Array(BINS + 1); let obj = 0;
-      for (let i = 0; i < N; i++) { const v = L[i]; if (v < isoCut) continue; obj++;
-        let b = Math.floor((Math.log(v / peak) - logMin) * inv); if (b < 0) b = 0; if (b > BINS) b = BINS; hist[b]++; }
-      if (obj === 0) return null;
-      const cum = new Float64Array(BINS + 1); let acc = 0;
-      for (let b = BINS; b >= 0; b--) { acc += hist[b]; cum[b] = acc; }
-      const detFrac = (fth) => { if (fth <= ISO) return 1; if (fth >= 1) return cum[BINS] / obj;
-        let b = Math.floor((Math.log(fth) - logMin) * inv); if (b < 0) b = 0; if (b > BINS) b = BINS; return cum[b] / obj; };
-      return { detFrac };
-    } catch (e) { return null; }
-  }, [target, userUploadEpoch]);
-  const detPct = (d, k) => {
-    if (!detHist) return null;
-    const Ndisk = Math.PI * (d.psf_fwhm_arcsec / 2) * (d.psf_fwhm_arcsec / 2) / (d.native_pixel_scale * d.native_pixel_scale);
-    const fth = k / (Math.sqrt(Math.max(1, Ndisk)) * Math.max(0.001, d.snr_bright));
-    return detHist.detFrac(fth) * 100;
-  };
+
   // v956: full system-input string for the side-by-side / flash top labels (FOV is
   // shown in the adjacent span). Adds filter, integration, site conditions, bin/drizzle.
   const sysTopLabel = (sys) => {
@@ -7646,6 +7613,41 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     }
     return getCachedMap('emission_wide', gen_emissionNebMap);
   }
+
+  // v961/v963: detection-fraction metric (defined after getDSOTarget so procMapCache is initialised). Histogram the baked noise-free source
+  // (getDSOTarget ha+oiii+bb) into a cumulative area function A(f) = fraction of
+  // object pixels (above a 0.1%-of-peak isophote) with surface brightness >= f*peak.
+  // Per system the kσ threshold is f_thresh = k / (sqrt(N_seeingdisk)*snr_bright),
+  // N_seeingdisk = π(FWHM/2)²/native_pixscale² (scale-invariant). detFrac(f_thresh)
+  // = % of the target detected. A(f) is object-intrinsic, so the A/B gap is pure depth
+  // (aperture × time). Uses the base (broadband) source: exact for same-filter A/B,
+  // indicative under differing narrowband filters.
+  const detHist = useMemo(() => {
+    try {
+      const m = getDSOTarget(target, false, 1);
+      const ha = m && m.ha, oi = m && m.oiii, bb = m && m.bb;
+      if (!ha || !bb) return null;
+      const N = ha.length; const L = new Float32Array(N); let peak = 0;
+      for (let i = 0; i < N; i++) { const v = (ha[i] || 0) + (oi ? (oi[i] || 0) : 0) + (bb[i] || 0); L[i] = v; if (v > peak) peak = v; }
+      if (peak <= 0) return null;
+      const ISO = 0.001, isoCut = ISO * peak, BINS = 512, logMin = Math.log(ISO), inv = BINS / (0 - logMin);
+      const hist = new Float64Array(BINS + 1); let obj = 0;
+      for (let i = 0; i < N; i++) { const v = L[i]; if (v < isoCut) continue; obj++;
+        let b = Math.floor((Math.log(v / peak) - logMin) * inv); if (b < 0) b = 0; if (b > BINS) b = BINS; hist[b]++; }
+      if (obj === 0) return null;
+      const cum = new Float64Array(BINS + 1); let acc = 0;
+      for (let b = BINS; b >= 0; b--) { acc += hist[b]; cum[b] = acc; }
+      const detFrac = (fth) => { if (fth <= ISO) return 1; if (fth >= 1) return cum[BINS] / obj;
+        let b = Math.floor((Math.log(fth) - logMin) * inv); if (b < 0) b = 0; if (b > BINS) b = BINS; return cum[b] / obj; };
+      return { detFrac };
+    } catch (e) { return null; }
+  }, [target, userUploadEpoch]);
+  const detPct = (d, k) => {
+    if (!detHist) return null;
+    const Ndisk = Math.PI * (d.psf_fwhm_arcsec / 2) * (d.psf_fwhm_arcsec / 2) / (d.native_pixel_scale * d.native_pixel_scale);
+    const fth = k / (Math.sqrt(Math.max(1, Ndisk)) * Math.max(0.001, d.snr_bright));
+    return detHist.detFrac(fth) * 100;
+  };
 
   // ============================================================
   // Star catalog — sky-coordinate stars rendered as a separate layer.
@@ -14404,12 +14406,15 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   <div style={{ marginTop: 4, fontSize: 10, color: entry.color, fontFamily: "JetBrains Mono, monospace" }}>
                     Stellar limit: m_lim {entry.sys.limiting_mag.toFixed(2)} (5σ point source)
                   </div>
-                  {detHist && (
-                    <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${entry.color}33`, fontSize: 13, color: entry.color, fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>
-                      Detected {(() => { const p = detPct(entry.sys, 3); return p == null ? "—" : p.toFixed(0) + "%"; })()} of target
-                      <span style={{ color: "#6a7894", fontSize: 10, fontWeight: 400 }}> · above 3σ, per seeing disk</span>
+                  {detHist && (() => { const p = detPct(entry.sys, 3); return (
+                    <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 3, background: `${entry.color}14`, border: `1px solid ${entry.color}44`, fontFamily: "JetBrains Mono, monospace" }}>
+                      <div style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: entry.color, opacity: 0.85, marginBottom: 2 }}>Detected · scale-free depth</div>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                        <span style={{ fontSize: 26, fontWeight: 700, color: entry.color }}>{p == null ? "—" : p.toFixed(0) + "%"}</span>
+                        <span style={{ fontSize: 10, color: "#8b96a8" }}>of target above 3σ · per seeing disk</span>
+                      </div>
                     </div>
-                  )}
+                  ); })()}
                 </div>
               );
             })}
