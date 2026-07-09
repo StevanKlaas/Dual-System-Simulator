@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v957";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v957 \u2014 Added a 'Download Source Code File: Simulator.tsx' link in the app header, linking to the GitHub source.\n\nv100\u2013v956 \u2014 (archived) Full lineage in git history: v942 optics-audit (Airy 1.029 \u03bb/D), v946/v947 narrowband-galaxy HII knots, v950\u2013v956 Flash export & captions (dual PNG lossless-APNG / dithered GIF, cropped-FOV, probe-SNR row, full system-input labels) plus a 75% zoom-crop preset. v943\u2013v949 were experiments, abandoned.";
+  const SIM_VERSION = "v958";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v958 \u2014 Flash GIF/APNG export now draws the A/B badge in the image's top-left corner, matching the Flash pane.\n\nv100\u2013v957 \u2014 (archived) Full lineage in git history: v942 optics-audit (Airy 1.029 \u03bb/D), v946/v947 narrowband-galaxy HII knots, v950\u2013v956 Flash export & captions (dual PNG lossless-APNG / dithered GIF, cropped-FOV, probe-SNR, full system-input labels, 75% crop), v957 source-code link. v943\u2013v949 were experiments, abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v957</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v958</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -12103,6 +12103,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         let cy = PAD + LH / 2;
         for (const segs of topRowsFor(active)) for (const line of wrap(g, segs)) { drawLine(g, line, cy); cy += LH; }
         g.drawImage(src, 0, 0, imgW, imgH, 0, topH, imgW, imgH);
+        // v958: A/B corner badge on the image, matching the Flash pane tag.
+        { const _bl = active, _bc = active === "A" ? "#d4a437" : "#5fb3a1", _pp = 16, _pv = 7, _m = 14;
+          g.font = "700 34px monospace"; g.textAlign = "left"; g.textBaseline = "middle";
+          const _bw = g.measureText(_bl).width + _pp * 2, _bh = 34 + _pv * 2;
+          g.fillStyle = _bc; g.fillRect(_m, topH + _m, _bw, _bh);
+          g.fillStyle = "#0a1020"; g.fillText(_bl, _m + _pp, topH + _m + _bh / 2 + 1); }
         cy = topH + imgH + PAD + LH / 2;
         for (const segs of botRowsFor(active)) for (const line of wrap(g, segs)) { drawLine(g, line, cy); cy += LH; }
         return g.getImageData(0, 0, GW, CH).data;
