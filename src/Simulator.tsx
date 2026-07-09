@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v958";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v958 \u2014 Flash GIF/APNG export now draws the A/B badge in the image's top-left corner, matching the Flash pane.\n\nv100\u2013v957 \u2014 (archived) Full lineage in git history: v942 optics-audit (Airy 1.029 \u03bb/D), v946/v947 narrowband-galaxy HII knots, v950\u2013v956 Flash export & captions (dual PNG lossless-APNG / dithered GIF, cropped-FOV, probe-SNR, full system-input labels, 75% crop), v957 source-code link. v943\u2013v949 were experiments, abandoned.";
+  const SIM_VERSION = "v960";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v960 \u2014 SNR/arcsec\u00b2 promoted to a prominent labelled block in the SNR panel (per level, with \u00d7N vs the other system), and the \u00d7N multiplier added to both the per-pixel and per-arcsec\u00b2 rows of the PNG/GIF export. Removed the dead GPU galaxy source path (~20 KB reclaimed). Object-detection-fraction % is the next step.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history: v942 optics-audit, v946/v947 NB galaxy knots, v950\u2013v958 Flash export & captions, v957 source link, v959 SNR/arcsec\u00b2 metric. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v958</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v960</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -982,7 +982,7 @@ export default function DualSystemSimulator() {
   Zoom-details mode is <b>PixInsight-faithful</b>: each system's camera image is rendered at its <i>native</i> FOV at the camera's true pixel scale, with PSF blur and quantization applied at the camera grid. When the user zooms in, the simulator crops into that camera image and interpolates it to fill the display canvas — exactly like zooming a stacked frame in PixInsight. No new spatial detail is invented past what the camera could actually record. A small aperture genuinely smears under deep zoom; the maths will not hide that.
 </div>
 <p class="body"><b>Drizzle view</b> (visible only when at least one system uses drizzle &gt; 1) chooses how the rendered image represents drizzle's noise behaviour. The default <i>Per-frame penalty</i> applies the 1/D SNR penalty in full. The alternative <i>Drizzle ceiling</i> scales the read-noise and FPN sigmas by 1/D, representing the upper bound where ideal sub-pixel dither coverage recovers the SNR penalty. Real drizzle output sits between the two ends; how close to the ceiling depends on sub-pixel registration accuracy, sensor PRNU/DSNU, and hot-pixel maps the simulator doesn't have data on. Poisson shot noise stays at the per-frame level in both views because reconstruction can't recover intrinsic photon noise — so the toggle's visible effect is strongest in read-noise-dominated regimes (short subs, dark site, narrowband, slow optics) and barely visible in shot-noise-dominated ones.</p>
-<p class="body"><b>Sampling view</b> (the match option dims when the two systems' pixel-scale ratio is below 1.4×) chooses what pixel grid the noisy electrons are aggregated to before display. The default <i>Native</i> shows each system at its own pixel scale, Lanczos-interpolated to the canvas — honest about per-pixel grain, but the fast-f-ratio system wins per pixel because each of its pixels covers more sky and integrates more photons. The alternative <i>Match higher px scale</i> aggregates both systems to the coarser of the two scales = max(px<sub>A</sub>, px<sub>B</sub>): the finer system's electrons are box-averaged at the captured-buffer scale by N = round(coarser/finer) down to that grid, then Lanczos-resampled to the canvas; the coarser system is unchanged. Noise σ per displayed pixel drops by exactly N for the finer system, so its per-pixel SNR rises by N — where a bigger-aperture but slower-f-ratio system's actual light-gathering advantage finally becomes visible. The matched grid <b>propagates into the per-pixel numbers</b>: the SNR readouts, the per-probe σ, the noise breakdown, and the under-image pixel scale all report at the displayed grid, as do the pixel-sampled MTF curve, the stripe-swatch "pixel resolved" rows, and the analysis table's plate-scale / px-count / sampling-verdict cells. Two quantities stay native because they are resampling-invariant: the point-source limiting magnitude and the optical MTF.</p>
+<p class="body"><b>Sampling view.</b> <i>Native</i> (default) shows each system at its own pixel scale (Lanczos to canvas) — honest per-pixel grain, but the faster-f-ratio system wins per pixel because each pixel covers more sky. <i>Match higher px scale</i> box-averages the finer system to the coarser grid = max(px<sub>A</sub>,px<sub>B</sub>) by N = round(coarser/finer), dropping its per-pixel σ by N and raising per-pixel SNR by N — where a larger aperture’s light-gathering finally becomes visible. The matched grid propagates into every per-pixel readout (SNR, σ, noise breakdown, plate scale, MTF, sampling verdict); the point-source limiting magnitude and the optical MTF stay native (resampling-invariant). The SNR/arcsec² row is scale-free and shows the aperture/depth advantage directly.</p>
 
 <p class="body"><b>Catalog stars (overlay).</b> A separate procedural catalog of <b>5328 stars</b> over a <b>24° × 24° sky patch</b> (≈37 stars/sq°) is rendered as the final imaging step, independent of the target underneath. Stars are projected from sky coordinates to canvas pixels using the <i>displayed</i> FOV — so in zoom-details mode A and B render exactly the same star positions, which makes per-pixel resolution and saturation comparisons unambiguous. Each star is painted with a Moffat profile (§3.5) whose peak carries native-pixel surface brightness ∝ aperture² / focal² = 1/f-ratio²: a fast scope concentrates a point source onto few native pixels and blooms more; a slow scope of equal or larger aperture spreads it thin into a dimmer, tighter star. Where a painted pixel reaches the sensor's integrated full well it clips to white, so a shallow-well sensor shows a larger blown core than a deep-well one on the same star — the visible CMOS-blooming analogue.</p>
 <p class="body"><b>Star catalog details.</b> The catalog is generated procedurally with a fixed seed (so A and B see the same stars and re-renders are deterministic). Positions are uniform-random within the 24°×24° field; brightness follows a cubic skew (most stars faint, very few bright); B-V colour spans −0.3 to +1.5 with a yellow-white bias matching real galactic-field statistics. <b>Five demo double-star pairs</b> are embedded in the central field at known separations (0.8″, 1.5″, 2.8″, 5″, 10″) with moderate brightness so they read as field stars; the tightest 0.8″ pair sits just off centre at (5′, 5′) — so it stays in view when you zoom in — right at the diffraction limit of a 152 mm aperture, the visual reference for "can this telescope split this pair?" The 24° field fully covers the worst case (a large full-frame sensor at minimum-realistic focal lengths), with smaller sensors cropping into it naturally. No real catalog (Hipparcos / Gaia) is queried; the same seed produces the same sky every time with no network dependency.</p>
@@ -1081,7 +1081,7 @@ export default function DualSystemSimulator() {
 <h3 class="section"><span class="num">2.6</span>SNR result section</h3>
 <dl class="controls">
   <dt>Bright / Medium / Faint per-pixel SNR</dt><dd>Three rows, one per probe level, with both systems side by side. Each is the integer per-pixel signal-to-noise ratio at the matched sky position. Per-channel breakdown (Hα / OIII / BB) is exposed for narrowband-aware filter comparisons.</dd>
-  <dt>Per-probe signal &amp; noise readouts</dt><dd>Each probe row also exposes the electron signal and total noise σ that produced the ratio, in monospace: <code>N e⁻ · σ M e⁻</code>. So a Bright row of <code>34.7 at peak, 17456 e⁻ · σ 503 e⁻</code> reads as "SNR 34.7 = 17456 / 503". The Medium row corresponds to 30 % of the post-blur source peak, Faint to 5 %. All three come from the same captured-buffer cache so they are statistically self-consistent.</dd>
+  <dt>Per-probe signal &amp; noise readouts</dt><dd>Each probe row also shows the electron signal and total noise σ behind the ratio (<code>N e⁻ · σ M e⁻</code>), so SNR = N/M. Medium = 30 % of the post-blur peak, Faint = 5 %; all three share the captured-buffer cache, so they are statistically self-consistent.</dd>
   <dt>Dominant-probe selector</dt><dd>Controls which probe drives the "winner" label so the comparison reflects the user's visual priority (bright extended ring vs faint outer halo, etc.).</dd>
 </dl>
 
@@ -2399,273 +2399,11 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         // × cam pixels is fine on GPU. Knots are built once by the CPU
         // bake (sequential RNG) and reused; the GPU dispatch just reads
         // from the storage buffer.
-        const galaxyShaderSrc = /* wgsl */`
-struct GalParams {
-  // Cam → arcsec geometry
-  W: u32, H: u32,
-  cxc: f32, cyc: f32,
-  cx_base: f32, cy_base: f32, zoom_cam: f32,
-  pn_cx_base: f32, pn_cy_base: f32,   // (IMG_W/2, IMG_H/2)
-  arcsec_per_basepx: f32,
-  // Galaxy morphology
-  PA_rad: f32, q: f32, n: f32, bn: f32, Re: f32,
-  bulgeAmp: f32, nucAmp: f32, nucScale: f32, diskAmp: f32, h: f32,
-  // Arms
-  armAmp: f32, tanP: f32, th0: f32, skew: f32,
-  armStart: f32, armPeak: f32, armFade: f32, armRamp: f32,
-  armWidth: f32, armSpread: f32, armWarp: f32, armAsym: f32,
-  lop: f32, fibBright: f32, grainFreq: f32, grainPow: f32,
-  // Dust
-  dustStrength: f32, dustWidth: f32, dustOff: f32, dustFade: f32,
-  dustSeg: f32, dustGap: f32, dustAlong: f32, dustAcross: f32,
-  filLen: f32, filSharp: f32, filWarp: f32, featherAmt: f32,
-  // White lanes
-  whiteAmp: f32, whiteWidth: f32, whiteOff: f32, whiteSkew_deg: f32,
-  whiteSeg: f32, whiteGap: f32, whiteFilSharp: f32, whiteFilLen: f32, whiteFilWarp: f32,
-  pitch: f32,
-  // Color recipe
-  tR: f32, tG: f32, tB: f32, warmth: f32,
-  hzR: f32, hzG: f32, hzB: f32,
-  wlR: f32, wlG: f32, wlB: f32,
-  pR: f32, pG: f32, pB: f32,
-  qR: f32, qG: f32, qB: f32,
-  kR: f32, kG: f32, kB: f32,
-  // Bake normalization
-  invHa: f32, invOiii: f32, invBb: f32,
-  // Seeds (passed as f32 — converted to u32 inside)
-  seed_N1: f32, seed_N2: f32, seed_Nw: f32,
-  seed_Nf: f32, seed_Nseg: f32, seed_Nwt: f32,
-  // Knot counts
-  nHii: u32, nClu: u32,
-  // IMG bounds for edge falloff
-  img_w_m1: f32, img_h_m1: f32,
-  _pad0: f32, _pad1: f32,
-};
-
-@group(0) @binding(0) var<storage, read_write> out_ha:   array<f32>;
-@group(0) @binding(1) var<storage, read_write> out_oiii: array<f32>;
-@group(0) @binding(2) var<storage, read_write> out_bb:   array<f32>;
-@group(0) @binding(3) var<uniform> P: GalParams;
-// Knot buffers: each knot occupies 5 floats (ax, ay, amp, two, cut),
-// packed sequentially. Indexed via i * 5 + offset.
-@group(0) @binding(4) var<storage, read> knot_hii: array<f32>;
-@group(0) @binding(5) var<storage, read> knot_clu: array<f32>;
-
-// 32-bit integer hash, matches the JS makeNoise.hash in
-// buildRealisticGalaxyModel. u32 wraps mod 2^32 — agrees with JS's
-// f64-then-|0 for hash inputs that fit in f64 precision (always true
-// for the galaxy's arcsec-scale inputs).
-fn hash_i(ix: i32, iy: i32, seed: u32) -> f32 {
-  let ux = u32(ix);
-  let uy = u32(iy);
-  var h: u32 = (ux + seed * 7919u) * 374761393u + (uy + seed * 6151u) * 668265263u;
-  h = (h ^ (h >> 13u)) * 1274126177u;
-  h = h ^ (h >> 16u);
-  return f32(h) / 4294967295.0;
-}
-fn sm01(t: f32) -> f32 { return t * t * (3.0 - 2.0 * t); }
-fn vnoise_i(x: f32, y: f32, seed: u32) -> f32 {
-  let x0 = i32(floor(x));
-  let y0 = i32(floor(y));
-  let fx = sm01(x - floor(x));
-  let fy = sm01(y - floor(y));
-  let v00 = hash_i(x0,     y0,     seed);
-  let v10 = hash_i(x0 + 1, y0,     seed);
-  let v01 = hash_i(x0,     y0 + 1, seed);
-  let v11 = hash_i(x0 + 1, y0 + 1, seed);
-  return v00 * (1.0 - fx) * (1.0 - fy) + v10 * fx * (1.0 - fy)
-       + v01 * (1.0 - fx) * fy        + v11 * fx * fy;
-}
-fn fbm_i(x: f32, y: f32, oct: i32, f0: f32, pers: f32, seed: u32) -> f32 {
-  var v: f32 = 0.0; var a: f32 = 1.0; var t: f32 = 0.0; var f: f32 = f0;
-  for (var i: i32 = 0; i < oct; i = i + 1) {
-    v = v + vnoise_i(x * f, y * f, seed) * a;
-    t = t + a; a = a * pers; f = f * 2.0;
-  }
-  return v / t;
-}
-fn ridged_i(x: f32, y: f32, oct: i32, f0: f32, pers: f32, seed: u32) -> f32 {
-  var v: f32 = 0.0; var a: f32 = 1.0; var t: f32 = 0.0; var f: f32 = f0;
-  for (var i: i32 = 0; i < oct; i = i + 1) {
-    let n = vnoise_i(x * f, y * f, seed);
-    let r = 1.0 - abs(2.0 * n - 1.0);
-    v = v + r * r * a;
-    t = t + a; a = a * pers; f = f * 2.0;
-  }
-  return v / t;
-}
-fn wrap_pi(a: f32) -> f32 {
-  let TWO_PI = 6.28318530717958647692;
-  let a1 = (a + 3.14159265358979323846);
-  let m = a1 - TWO_PI * floor(a1 / TWO_PI);
-  return m - 3.14159265358979323846;
-}
-fn ss(e0: f32, e1: f32, x: f32) -> f32 {
-  let t = clamp((x - e0) / (e1 - e0), 0.0, 1.0);
-  return t * t * (3.0 - 2.0 * t);
-}
-
-@compute @workgroup_size(8, 8)
-fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  if (gid.x >= P.W || gid.y >= P.H) { return; }
-
-  // cam-pixel → base-px → arcsec
-  let bx = P.cx_base + (f32(gid.x) - P.cxc) * P.zoom_cam;
-  let by = P.cy_base + (f32(gid.y) - P.cyc) * P.zoom_cam;
-
-  // Off-bake edge falloff (matches JS path)
-  let oob_dx = max(0.0, max(-bx, bx - P.img_w_m1));
-  let oob_dy = max(0.0, max(-by, by - P.img_h_m1));
-  let overshoot = sqrt(oob_dx * oob_dx + oob_dy * oob_dy);
-  let edgeFall = select(1.0, exp(-overshoot / 60.0), overshoot > 0.0);
-
-  let ax = (bx - P.pn_cx_base) * P.arcsec_per_basepx;
-  let ay = (by - P.pn_cy_base) * P.arcsec_per_basepx;
-
-  // === Port of buildRealisticGalaxyModel.sampleAt ===
-  let cosPA = cos(P.PA_rad);
-  let sinPA = sin(P.PA_rad);
-  let xr = ax * cosPA + ay * sinPA;
-  let yr = -ax * sinPA + ay * cosPA;
-  let ydp = yr / max(0.05, P.q);
-  let r = sqrt(xr * xr + ydp * ydp);
-  let th = atan2(ydp, xr);
-
-  let bulge = P.bulgeAmp * exp(-P.bn * (pow(max(r, 0.01) / P.Re, 1.0 / P.n) - 1.0));
-  let nuc = P.nucAmp * exp(-r / P.nucScale);
-  let disk = P.diskAmp * exp(-r / P.h);
-
-  let s_N1  = u32(P.seed_N1);
-  let s_N2  = u32(P.seed_N2);
-  let s_Nw  = u32(P.seed_Nw);
-  let s_Nf  = u32(P.seed_Nf);
-  let s_Nseg = u32(P.seed_Nseg);
-  let s_Nwt = u32(P.seed_Nwt);
-
-  let warp = (fbm_i(ax, ay, 3, 0.006, 0.5, s_Nw) - 0.5) * P.armWarp;
-  let rise = ss(P.armStart, P.armStart + P.armRamp, r);
-  let fall = exp(-max(0.0, r - P.armPeak) / P.armFade);
-  let env = rise * fall;
-  let w = P.armWidth * (1.0 + P.armSpread * min(1.8, max(0.0, (r - P.armStart)) / P.h));
-  let rC = max(r, P.armStart);
-  let la = log(rC);
-  let pa = th - log(rC) / P.tanP;
-
-  var band: f32 = 0.0;
-  var dthDust: f32 = 9.9;
-  for (var oi: i32 = 0; oi < 2; oi = oi + 1) {
-    let oif = f32(oi);
-    let ampk = 1.0 - select(0.0, P.armAsym, oi == 1);
-    let offk = oif * 3.14159265358979323846 + select(0.0, P.skew, oi == 1);
-    let wk = w * select(1.0, 1.15, oi == 1);
-    let dth = wrap_pi(th + warp - (offk + log(rC / P.armStart) / P.tanP));
-    band = band + ampk * exp(-dth * dth / (2.0 * wk * wk));
-    let dd = dth - P.dustOff;
-    if (abs(dd) < abs(dthDust)) { dthDust = dd; }
-  }
-  let lop = 1.0 + P.lop * cos(th - P.th0);
-  let grainN = fbm_i(ax, ay, 5, P.grainFreq, 0.62, s_N1);
-  let grainMod = 1.0 + P.fibBright * (pow(max(0.0, grainN), P.grainPow) - 0.32);
-  var bandLight = P.armAmp * band * env * max(0.0, lop) * max(0.0, grainMod);
-  bandLight = max(0.0, bandLight);
-
-  let dWin = ss(P.armStart, P.armStart + P.armRamp, r) * exp(-max(0.0, r - P.armStart) / P.dustFade);
-  let laneCore = exp(-dthDust * dthDust / (2.0 * P.dustWidth * P.dustWidth));
-  let laneTex = 0.45 + 0.85 * ridged_i(la * P.dustAlong, pa * P.dustAcross, 5, 1.0, 0.55, s_N2);
-  let feathR = ridged_i(la * P.dustAlong * 2.2, dthDust * 22.0, 5, 1.0, 0.55, s_Nf);
-  let feather = pow(max(0.0, feathR - 0.45) * 2.0, 2.0) * exp(-dthDust * dthDust / (2.0 * (P.dustWidth * 3.0) * (P.dustWidth * 3.0)));
-  let fwx = fbm_i(ax * 0.011, ay * 0.011, 4, 1.0, 0.5, s_Nw) - 0.5;
-  let fwy = fbm_i((ax + 143.0) * 0.011, (ay + 71.0) * 0.011, 4, 1.0, 0.5, s_Nw) - 0.5;
-  let Rg = ridged_i((ax + P.filWarp * fwx) * P.dustSeg, (ay + P.filWarp * fwy) * P.dustSeg, 5, 1.0, 0.62, s_N2);
-  let fil = pow(max(0.0, (Rg - P.dustGap) / (1.0 - P.dustGap)), P.filSharp);
-  let dcf = P.dustSeg / P.filLen;
-  let dcut = P.filLen + (1.0 - P.filLen) * ss(0.5, 0.66, fbm_i(ax * dcf, ay * dcf, 5, 1.0, 0.6, s_Nseg));
-  var A_ext = P.dustStrength * dWin * (laneCore * fil * dcut + P.featherAmt * feather);
-  A_ext = max(0.0, A_ext);
-
-  let tanW = tan((P.pitch + P.whiteSkew_deg) * 3.14159265358979323846 / 180.0);
-  var dthW: f32 = 9.9;
-  for (var oi: i32 = 0; oi < 2; oi = oi + 1) {
-    let oif = f32(oi);
-    let offk = oif * 3.14159265358979323846 + select(0.0, P.skew, oi == 1);
-    let cw = offk + log(rC / P.armStart) / tanW;
-    let d = wrap_pi(th - cw - P.whiteOff);
-    if (abs(d) < abs(dthW)) { dthW = d; }
-  }
-  let wwx = fbm_i(ax * 0.013 + 9.0, ay * 0.013 + 3.0, 4, 1.0, 0.5, s_Nw) - 0.5;
-  let wwy = fbm_i((ax + 88.0) * 0.013, (ay + 27.0) * 0.013, 4, 1.0, 0.5, s_Nw) - 0.5;
-  let Rw = ridged_i((ax + P.whiteFilWarp * wwx) * P.whiteSeg, (ay + P.whiteFilWarp * wwy) * P.whiteSeg, 5, 1.0, 0.62, s_Nwt);
-  let whiteFil = pow(max(0.0, (Rw - P.whiteGap) / (1.0 - P.whiteGap)), P.whiteFilSharp);
-  let wcf = P.whiteSeg / P.whiteFilLen;
-  let wcut = P.whiteFilLen + (1.0 - P.whiteFilLen) * ss(0.5, 0.66, fbm_i(ax * wcf + 5.0, ay * wcf + 2.0, 5, 1.0, 0.6, s_Nf));
-  let whiteLight = P.whiteAmp * exp(-dthW * dthW / (2.0 * P.whiteWidth * P.whiteWidth)) * env * whiteFil * wcut * ss(0.22, 0.55, band);
-
-  let bb_s = bulge + nuc + bandLight;
-  let warm = P.warmth * (bulge + nuc);
-  let diskL = disk;
-  let whiteL = max(0.0, whiteLight);
-
-  // Knot accumulation (brute-force over both lists with early reject)
-  var haK: f32 = 0.0;
-  for (var i: u32 = 0u; i < P.nHii; i = i + 1u) {
-    let base = i * 5u;
-    let kax = knot_hii[base + 0u];
-    let kay = knot_hii[base + 1u];
-    let kamp = knot_hii[base + 2u];
-    let ktwo = knot_hii[base + 3u];
-    let kcut = knot_hii[base + 4u];
-    let dx = ax - kax;
-    let dy = ay - kay;
-    let d2 = dx * dx + dy * dy;
-    if (d2 <= kcut) {
-      haK = haK + kamp * exp(-d2 / ktwo);
-    }
-  }
-  var clB: f32 = 0.0;
-  for (var i: u32 = 0u; i < P.nClu; i = i + 1u) {
-    let base = i * 5u;
-    let kax = knot_clu[base + 0u];
-    let kay = knot_clu[base + 1u];
-    let kamp = knot_clu[base + 2u];
-    let ktwo = knot_clu[base + 3u];
-    let kcut = knot_clu[base + 4u];
-    let dx = ax - kax;
-    let dy = ay - kay;
-    let d2 = dx * dx + dy * dy;
-    if (d2 <= kcut) {
-      clB = clB + kamp * exp(-d2 / ktwo);
-    }
-  }
-
-  // encode() port
-  let br = bb_s * P.tR + warm + diskL * P.tR * P.hzR + whiteL * P.wlR + haK * P.pR + clB * P.qR;
-  let bg = bb_s * P.tG + warm * 0.30 + diskL * P.tG * P.hzG + whiteL * P.wlG + haK * P.pG + clB * P.qG;
-  let bl = bb_s * P.tB + diskL * P.tB * P.hzB + whiteL * P.wlB + haK * P.pB + clB * P.qB;
-  let R_out = br * exp(-A_ext * P.kR);
-  let G_out = bg * exp(-A_ext * P.kG);
-  let B_out = bl * exp(-A_ext * P.kB);
-
-  let idx = gid.y * P.W + gid.x;
-  out_ha[idx]   = R_out * P.invHa   * edgeFall;
-  out_oiii[idx] = G_out * P.invOiii * edgeFall;
-  out_bb[idx]   = B_out * P.invBb   * edgeFall;
-}
-`;
-
-        try {
-          const galModule = device.createShaderModule({ code: galaxyShaderSrc });
-          const galPipeline = await device.createComputePipelineAsync({
-            layout: "auto",
-            compute: { module: galModule, entryPoint: "main" },
-          });
-          if (cancelled) return;
-          gpuRef.current.pipelines.galaxy = galPipeline;
-          setGpuReady(s => ({ ...s, galaxy: true }));
-          console.log("[v710] galaxy compute pipeline ready");
-        } catch (e) {
-          console.warn("[v710] galaxy shader compile failed:", e.message);
-          if (!cancelled) setGpuError(`galaxy shader: ${e.message}`);
-        }
+        // v960: GPU galaxy source-composer removed (dead since v901 — its gate required
+        // dsoChannels.model/invHa, which gen_realisticGalaxyMap no longer returns; galaxy
+        // composes on CPU). Ready flag kept so the status pill is unaffected; active
+        // blur/noise/resample pipelines are untouched.
+        if (!cancelled) setGpuReady(s => ({ ...s, galaxy: true }));
 
         // v720 Phase B.3 part 1: emission_neb compute pipeline. The full v97
         // dust field + 5 illuminators + filament/knot fine detail is ported
@@ -4182,195 +3920,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // knot lists (each knot = 5 f32: ax, ay, amp, two, cut, packed
   // sequentially). All knot construction stayed on CPU (sequential RNG);
   // this dispatch only consumes the lists.
-  async function runGalaxyGpu(cfg) {
-    const g = gpuRef.current;
-    if (!g || !g.pipelines.galaxy) throw new Error("galaxy GPU pipeline not ready");
-    const { device, pipelines: { galaxy: pipeline } } = g;
-    const {
-      RW_cam, RH_cam, cxc, cyc, cx_base, cy_base, zoom_cam,
-      arcsec_per_basepx,
-      params: gp, hii, clu,
-      invHa, invOiii, invBb,
-    } = cfg;
-    const N = RW_cam * RH_cam;
-    const byteLen = N * 4;
-
-    const bufHa   = device.createBuffer({ size: byteLen, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
-    const bufOiii = device.createBuffer({ size: byteLen, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
-    const bufBb   = device.createBuffer({ size: byteLen, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
-
-    // Pack knots: each = [ax, ay, amp, two, cut]. Pad to 5 floats even
-    // if any list is empty (avoids zero-size storage buffer rejection).
-    function packKnots(list) {
-      const n = Math.max(1, list.length);
-      const buf = new Float32Array(n * 5);
-      for (let i = 0; i < list.length; i++) {
-        const k = list[i];
-        buf[i * 5 + 0] = k.ax;
-        buf[i * 5 + 1] = k.ay;
-        buf[i * 5 + 2] = k.amp;
-        buf[i * 5 + 3] = k.two;
-        buf[i * 5 + 4] = k.cut;
-      }
-      return buf;
-    }
-    const hiiArr = packKnots(hii);
-    const cluArr = packKnots(clu);
-    const bufHii = device.createBuffer({ size: hiiArr.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-    const bufClu = device.createBuffer({ size: cluArr.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-    device.queue.writeBuffer(bufHii, 0, hiiArr);
-    device.queue.writeBuffer(bufClu, 0, cluArr);
-
-    // Color recipe constants — replicate the JS computation in gen_realisticGalaxyMap
-    const tR = gp.tintR, tG = gp.tintG, tB = gp.tintB;
-    const wT = gp.whiteTint, zT = gp.hazeTint;
-    const hS = gp.haSat, cS = gp.clSat;
-    const wlR = 1 + (0.30 - 1) * wT, wlG = 1 + (0.58 - 1) * wT, wlB = 1 + (1.30 - 1) * wT;
-    const hzR = 1 + (0.30 - 1) * zT, hzG = 1 + (0.58 - 1) * zT, hzB = 1 + (1.30 - 1) * zT;
-    const pR_co = 1, pG_co = 1 + (0.28 - 1) * hS, pB_co = 1 + (0.55 - 1) * hS;
-    const qR_co = 1 + (0.45 - 1) * cS, qG_co = 1 + (0.72 - 1) * cS, qB_co = 1 + (1.00 - 1) * cS;
-
-    // Uniform params: lots of fields. Stride is f32; one big ArrayBuffer.
-    // 16-byte alignment requirement, padded at end.
-    // The struct GalParams has 90 fields. Round up to multiple of 4 (16 bytes).
-    const NFIELDS = 96;
-    const paramsBuf = new ArrayBuffer(NFIELDS * 4);
-    const u32 = new Uint32Array(paramsBuf);
-    const f32 = new Float32Array(paramsBuf);
-    let i = 0;
-    u32[i++] = RW_cam;
-    u32[i++] = RH_cam;
-    f32[i++] = cxc; f32[i++] = cyc;
-    f32[i++] = cx_base; f32[i++] = cy_base; f32[i++] = zoom_cam;
-    f32[i++] = IMG_W * 0.5; f32[i++] = IMG_H * 0.5;
-    f32[i++] = arcsec_per_basepx;
-    // Galaxy morphology
-    f32[i++] = gp.PA * Math.PI / 180;          // PA_rad
-    f32[i++] = Math.max(0.05, gp.q);
-    f32[i++] = gp.n;
-    f32[i++] = 1.9992 * gp.n - 0.3271;          // bn
-    f32[i++] = gp.Re;
-    f32[i++] = gp.bulgeAmp;
-    f32[i++] = gp.nucAmp;
-    f32[i++] = gp.nucScale;
-    f32[i++] = gp.diskAmp;
-    f32[i++] = gp.h;
-    // Arms
-    f32[i++] = gp.armAmp;
-    f32[i++] = Math.tan(Math.max(2, gp.pitch) * Math.PI / 180);  // tanP
-    f32[i++] = gp.lopAng * Math.PI / 180;       // th0
-    f32[i++] = gp.armSkew * Math.PI / 180;      // skew
-    f32[i++] = gp.armStart;
-    f32[i++] = gp.armPeak;
-    f32[i++] = gp.armFade;
-    f32[i++] = gp.armRamp;
-    f32[i++] = gp.armWidth;
-    f32[i++] = gp.armSpread;
-    f32[i++] = gp.armWarp;
-    f32[i++] = gp.armAsym;
-    f32[i++] = gp.lop;
-    f32[i++] = gp.fibBright;
-    f32[i++] = gp.grainFreq;
-    f32[i++] = gp.grainPow;
-    // Dust
-    f32[i++] = gp.dustStrength;
-    f32[i++] = gp.dustWidth;
-    f32[i++] = gp.dustOff;
-    f32[i++] = gp.dustFade;
-    f32[i++] = gp.dustSeg;
-    f32[i++] = gp.dustGap;
-    f32[i++] = gp.dustAlong;
-    f32[i++] = gp.dustAcross;
-    f32[i++] = gp.filLen;
-    f32[i++] = gp.filSharp;
-    f32[i++] = gp.filWarp;
-    f32[i++] = gp.featherAmt;
-    // White lanes
-    f32[i++] = gp.whiteAmp;
-    f32[i++] = gp.whiteWidth;
-    f32[i++] = gp.whiteOff;
-    f32[i++] = gp.whiteSkew;            // stored as degrees in WGSL — shader converts
-    f32[i++] = gp.whiteSeg;
-    f32[i++] = gp.whiteGap;
-    f32[i++] = gp.whiteFilSharp;
-    f32[i++] = gp.whiteFilLen;
-    f32[i++] = gp.whiteFilWarp;
-    f32[i++] = gp.pitch;
-    // Color recipe
-    f32[i++] = tR; f32[i++] = tG; f32[i++] = tB;
-    f32[i++] = gp.warmth;
-    f32[i++] = hzR; f32[i++] = hzG; f32[i++] = hzB;
-    f32[i++] = wlR; f32[i++] = wlG; f32[i++] = wlB;
-    f32[i++] = pR_co; f32[i++] = pG_co; f32[i++] = pB_co;
-    f32[i++] = qR_co; f32[i++] = qG_co; f32[i++] = qB_co;
-    f32[i++] = gp.redKR; f32[i++] = gp.redKG; f32[i++] = gp.redKB;
-    // Bake norm
-    f32[i++] = invHa; f32[i++] = invOiii; f32[i++] = invBb;
-    // Seeds (encoded as floats; shader casts to u32). Matches the JS
-    // makeNoise(seed) seeds inside buildRealisticGalaxyModel.
-    f32[i++] = gp.seed;            // N1
-    f32[i++] = gp.seed + 101;      // N2
-    f32[i++] = gp.seed + 202;      // Nw
-    f32[i++] = gp.seed + 505;      // Nf
-    f32[i++] = gp.seed + 606;      // Nseg
-    f32[i++] = gp.seed + 707;      // Nwt
-    // Knot counts
-    u32[i++] = hii.length;
-    u32[i++] = clu.length;
-    // IMG bounds
-    f32[i++] = IMG_W - 1;
-    f32[i++] = IMG_H - 1;
-    // padding to NFIELDS
-
-    const bufParams = device.createBuffer({
-      size: NFIELDS * 4,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    device.queue.writeBuffer(bufParams, 0, paramsBuf);
-
-    const bindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: bufHa } },
-        { binding: 1, resource: { buffer: bufOiii } },
-        { binding: 2, resource: { buffer: bufBb } },
-        { binding: 3, resource: { buffer: bufParams } },
-        { binding: 4, resource: { buffer: bufHii } },
-        { binding: 5, resource: { buffer: bufClu } },
-      ],
-    });
-
-    const encoder = device.createCommandEncoder();
-    const pass = encoder.beginComputePass();
-    pass.setPipeline(pipeline);
-    pass.setBindGroup(0, bindGroup);
-    pass.dispatchWorkgroups(Math.ceil(RW_cam / 8), Math.ceil(RH_cam / 8));
-    pass.end();
-
-    const readHa   = device.createBuffer({ size: byteLen, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
-    const readOiii = device.createBuffer({ size: byteLen, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
-    const readBb   = device.createBuffer({ size: byteLen, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
-    encoder.copyBufferToBuffer(bufHa,   0, readHa,   0, byteLen);
-    encoder.copyBufferToBuffer(bufOiii, 0, readOiii, 0, byteLen);
-    encoder.copyBufferToBuffer(bufBb,   0, readBb,   0, byteLen);
-    device.queue.submit([encoder.finish()]);
-
-    await Promise.all([
-      readHa.mapAsync(GPUMapMode.READ),
-      readOiii.mapAsync(GPUMapMode.READ),
-      readBb.mapAsync(GPUMapMode.READ),
-    ]);
-    const ha   = new Float32Array(readHa.getMappedRange().slice(0));
-    const oiii = new Float32Array(readOiii.getMappedRange().slice(0));
-    const bb   = new Float32Array(readBb.getMappedRange().slice(0));
-    readHa.unmap(); readOiii.unmap(); readBb.unmap();
-
-    bufHa.destroy(); bufOiii.destroy(); bufBb.destroy();
-    bufParams.destroy(); bufHii.destroy(); bufClu.destroy();
-    readHa.destroy(); readOiii.destroy(); readBb.destroy();
-
-    return { ha, oiii, bb };
-  }
+  // v960: dead GPU galaxy dispatch removed (galaxy composes on CPU).
 
   // v720 Phase B.3 part 1: run the emission_neb compute pipeline. Lifecycle
   // matches runPnGpu (no knot buffers needed — illuminator data and discrete
@@ -9070,17 +8620,6 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               && _gpuRef.pipelines.pn
               && typeof dsoChannels.shNorm === 'number'
             );
-            // v710 Phase B.2: GPU path for spiral_galaxy_dusty. Reads the
-            // exposed model.hii / .clu knot lists + params + bake norm
-            // constants from dsoChannels (populated by gen_realisticGalaxyMap).
-            const _useGpuGal = (
-              target === 'spiral_galaxy_dusty'
-              && _gpuRef
-              && _gpuRef.pipelines
-              && _gpuRef.pipelines.galaxy
-              && dsoChannels.model
-              && typeof dsoChannels.invHa === 'number'
-            );
             // v720 Phase B.3 part 1: GPU path for emission_neb.
             const _useGpuEm = (
               target === 'emission_neb'
@@ -9122,34 +8661,6 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 }
               } catch (e) {
                 console.warn("[v700] PN GPU dispatch failed, falling back to JS sampleAt:", e.message);
-                if (perfStatsRef.current) perfStatsRef.current.active = _ps;
-              }
-            } else if (_useGpuGal) {
-              const _tGpuStart = performance.now();
-              try {
-                const r = await runGalaxyGpu({
-                  RW_cam, RH_cam,
-                  cxc, cyc,
-                  cx_base, cy_base, zoom_cam,
-                  arcsec_per_basepx: dsoChannels.arcsec_per_basepx,
-                  params: dsoChannels.model.params,
-                  hii: dsoChannels.model.hii,
-                  clu: dsoChannels.model.clu,
-                  invHa: dsoChannels.invHa,
-                  invOiii: dsoChannels.invOiii,
-                  invBb: dsoChannels.invBb,
-                });
-                camHa = r.ha;
-                camOiii = r.oiii;
-                camBb = r.bb;
-                _srcDispatched = true;
-                if (perfStatsRef.current) perfStatsRef.current.active = _ps;
-                if (_ps) {
-                  _ps.srcGpu = true;
-                  _ps.srcMs += performance.now() - _tGpuStart;
-                }
-              } catch (e) {
-                console.warn("[v710] galaxy GPU dispatch failed, falling back to JS sampleAt:", e.message);
                 if (perfStatsRef.current) perfStatsRef.current.active = _ps;
               }
             } else if (_useGpuEm) {
@@ -12062,17 +11573,31 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       };
       const snrSegs = (which) => {
         const s = which === "A" ? snrDisplayA : snrDisplayB;
+        const o = which === "A" ? snrDisplayB : snrDisplayA;
         const col = which === "A" ? "#d4a437" : "#5fb3a1";
+        const mx = (a, b) => " \u00d7" + (a / Math.max(0.001, b)).toFixed(2);
         return [
           { t: "per-pixel SNR", c: GREY },
-          { t: "Bright " + Math.round(s.snr_bright), c: col },
-          { t: "Medium " + Math.round(s.snr_medium), c: "#9aa5bb" },
-          { t: "Faint " + Math.round(s.snr_faint), c: "#7a879e" },
+          { t: "Bright " + Math.round(s.snr_bright) + mx(s.snr_bright, o.snr_bright), c: col },
+          { t: "Medium " + Math.round(s.snr_medium) + mx(s.snr_medium, o.snr_medium), c: "#9aa5bb" },
+          { t: "Faint " + Math.round(s.snr_faint) + mx(s.snr_faint, o.snr_faint), c: "#7a879e" },
         ];
       };
       const tlabel = (TARGETS[target] && TARGETS[target].label) || target;
       const topRowsFor = (active) => [[{ t: "Target: " + tlabel, c: "#c3ccdb" }], sysParamSegs(active)];
-      const botRowsFor = (active) => [psfSegs(active), sensorSegs(active), snrSegs(active)];
+      const snrAreaSegs = (which) => {
+        const d = which === "A" ? dA : dB, od = which === "A" ? dB : dA;
+        const col = which === "A" ? "#d4a437" : "#5fb3a1";
+        const ps = d.native_pixel_scale, ops = od.native_pixel_scale;
+        const mx = (x, ox) => " \u00d7" + ((x / ps) / Math.max(0.001, ox / ops)).toFixed(2);
+        return [
+          { t: "SNR / arcsec\u00b2", c: GREY },
+          { t: "Bright " + Math.round(d.snr_bright / ps) + mx(d.snr_bright, od.snr_bright), c: col },
+          { t: "Medium " + Math.round(d.snr_medium / ps) + mx(d.snr_medium, od.snr_medium), c: "#9aa5bb" },
+          { t: "Faint " + (d.snr_faint / ps).toFixed(1) + mx(d.snr_faint, od.snr_faint), c: "#7a879e" },
+        ];
+      };
+      const botRowsFor = (active) => [psfSegs(active), sensorSegs(active), snrSegs(active), snrAreaSegs(active)];
 
       const bodyF = 21, LH = 28, PAD = 24, GW = RW, maxTextW = GW - 2 * PAD, SEP = " \u00b7 ";
       const wrap = (g, segs) => {
@@ -14147,7 +13672,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                     <span style={{ color: "#d4a437", fontWeight: 600 }}>Native</span>
                     <span>Each system shown at its own sensor pixel scale, Lanczos-resampled to the canvas. Honest about per-pixel grain — what one un-binned native frame looks like at the camera grid. The fast-f-ratio system wins per pixel because each pixel covers more sky area, integrating more photons per measurement.</span>
                     <span style={{ color: "#d4a437", fontWeight: 600 }}>Match higher px scale</span>
-                    <span>Both systems aggregated to the higher (coarser) of the two pixel scales = max(pxA, pxB). The finer system's captured electrons are box-averaged at the captured-buffer (sensor) scale down to that grid, then Lanczos-resampled to the canvas; the coarser system is already at the target and is unchanged. Noise σ per displayed pixel drops by exactly N = round(coarser/finer) for the finer system, so its per-pixel SNR rises by N. This is the fair per-arcsec² comparison — the bigger-aperture system's light-gathering advantage finally becomes visible. There is no directional ambiguity: matching to the finer system would require upsampling the coarser one, which adds no information, so only this direction is offered.</span>
+                    <span>Both systems aggregated to the coarser scale = max(px<sub>A</sub>, px<sub>B</sub>): the finer system’s electrons are box-averaged by N = round(coarser/finer) then Lanczos-resampled; the coarser is unchanged. σ per displayed pixel drops by N, so per-pixel SNR rises by N — the fair per-arcsec² comparison where the bigger aperture shows. Matching to the finer system would upsample the coarser one (no new information), so only this direction is offered.</span>
                   </div>
                   <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid rgba(96, 116, 156, 0.15)", fontSize: 9, color: "#6a7894" }}>
                     Propagated — SNR readouts, noise breakdown, and the under-image pixel scale all switch to the displayed-grid values; only point-source limiting magnitude and the optical MTF stay native (resampling-invariant). The Match button dims when the pixel-scale ratio is below 1.4× (nothing meaningful to aggregate).
@@ -14738,6 +14263,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               const sigmaM = entry.sys.noise_total_medium / entry.bin;
               const sigmaF = entry.sys.noise_total_faint  / entry.bin;
               const sigmaPeak = entry.sys.noise_breakdown.total / entry.bin;
+              // v960: scale-free SNR/arcsec² (native SNR ÷ native ″/px) + ×N vs the other system.
+              const _psA = entry.sys.native_pixel_scale, _psO = entry.other.native_pixel_scale;
+              const arcB = entry.sys.snr_bright / _psA, arcM = entry.sys.snr_medium / _psA, arcF = entry.sys.snr_faint / _psA;
+              const arcRB = arcB / Math.max(0.001, entry.other.snr_bright / _psO);
+              const arcRM = arcM / Math.max(0.001, entry.other.snr_medium / _psO);
+              const arcRF = arcF / Math.max(0.001, entry.other.snr_faint / _psO);
               const otherDispB = entry.other.snr_bright * entry.binOther;
               const otherDispM = entry.other.snr_medium * entry.binOther;
               const otherDispF = entry.other.snr_faint  * entry.binOther;
@@ -14802,6 +14333,21 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                         {entry.sys.sig_total_faint.toFixed(0)}e⁻ · σ {sigmaF.toFixed(1)}e⁻
                       </span>
                       <span style={ratioStyle(rF)}>×{rF.toFixed(2)} vs {entry.otherLabel}</span>
+                    </div>
+                  </div>
+                  {/* v960: SNR/arcsec² — scale-free detection metric, per level, with ×N vs the other system. */}
+                  <div style={{ borderTop: `1px solid ${entry.color}33`, paddingTop: 8, marginBottom: 8 }}>
+                    <div style={{ color: entry.color, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.9, marginBottom: 5 }}>SNR / arcsec² · scale-free detection</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "4px 12px", alignItems: "baseline", fontFamily: "JetBrains Mono, monospace" }}>
+                      <span style={{ color: entry.color, fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase" }}>Bright</span>
+                      <span style={{ fontSize: 19, color: entry.color, fontWeight: 500 }}>{arcB.toFixed(0)}</span>
+                      <span style={ratioStyle(arcRB)}>×{arcRB.toFixed(2)} vs {entry.otherLabel}</span>
+                      <span style={{ color: "#9aa5bb", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase" }}>Medium</span>
+                      <span style={{ fontSize: 15, color: "#9aa5bb" }}>{arcM.toFixed(0)}</span>
+                      <span style={ratioStyle(arcRM)}>×{arcRM.toFixed(2)} vs {entry.otherLabel}</span>
+                      <span style={{ color: "#6a7894", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase" }}>Faint</span>
+                      <span style={{ fontSize: 15, color: "#6a7894" }}>{arcF.toFixed(1)}</span>
+                      <span style={ratioStyle(arcRF)}>×{arcRF.toFixed(2)} vs {entry.otherLabel}</span>
                     </div>
                   </div>
                   <div style={{ borderTop: "1px solid rgba(96, 116, 156, 0.2)", paddingTop: 6, fontSize: 10, color: "#9aa5bb" }}>
