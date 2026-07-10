@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v964";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v964 \u2014 Detection '?' help popover was clipped by the section bounds (position:absolute); switched it to a fixed, centred panel with a tap-to-dismiss backdrop (also iPad-friendly).\n\n\u2022 v963 \u2014 Fixed the detection-fraction readout showing blank/no number: the detHist memo ran before procMapCache/getCachedMap were initialised (temporal dead zone), so getDSOTarget threw and it fell back to null. Moved it below getDSOTarget. Made the per-system 'Detected % of target' a prominent boxed metric with a large number.\n\n\u2022 v962 \u2014 Documented SNR/arcsec\u00b2, \u00d7N and detection-fraction in \u00a72.6; added a '?' help popover on the detection line.\n\n\u2022 v960\u2013v961 \u2014 SNR/arcsec\u00b2 prominent block + \u00d7N multipliers; detection-fraction metric; dead GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v966";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v966 \u2014 Fixed SNR/arcsec\u00b2 and detection-% wrongly moving when binning changed: snr_bright is per-binned-pixel (includes bin_area), but the metrics divided by the native pixel scale \u2014 a mismatch. Now paired with the effective (binned/drizzled) pixel scale, so both are correctly invariant under binning and drizzle (bin-1 f-ratio comparisons unchanged). v965 (Helvetica) abandoned.\n\n\u2022 v964 \u2014 Detection '?' help popover was clipped by the section bounds (position:absolute); switched it to a fixed, centred panel with a tap-to-dismiss backdrop (also iPad-friendly).\n\n\u2022 v963 \u2014 Fixed the detection-fraction readout showing blank/no number: the detHist memo ran before procMapCache/getCachedMap were initialised (temporal dead zone), so getDSOTarget threw and it fell back to null. Moved it below getDSOTarget. Made the per-system 'Detected % of target' a prominent boxed metric with a large number.\n\n\u2022 v962 \u2014 Documented SNR/arcsec\u00b2, \u00d7N and detection-fraction in \u00a72.6; added a '?' help popover on the detection line.\n\n\u2022 v960\u2013v961 \u2014 SNR/arcsec\u00b2 prominent block + \u00d7N multipliers; detection-fraction metric; dead GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v964</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v966</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1083,9 +1083,9 @@ export default function DualSystemSimulator() {
   <dt>Bright / Medium / Faint per-pixel SNR</dt><dd>Three rows, one per probe level, with both systems side by side. Each is the integer per-pixel signal-to-noise ratio at the matched sky position. Per-channel breakdown (Hα / OIII / BB) is exposed for narrowband-aware filter comparisons.</dd>
   <dt>Per-probe signal &amp; noise readouts</dt><dd>Each probe row also shows the electron signal and total noise σ behind the ratio (<code>N e⁻ · σ M e⁻</code>), so SNR = N/M. Medium = 30 % of the post-blur peak, Faint = 5 %; all three share the captured-buffer cache, so they are statistically self-consistent.</dd>
   <dt>Dominant-probe selector</dt><dd>Controls which probe drives the "winner" label so the comparison reflects the user's visual priority (bright extended ring vs faint outer halo, etc.).</dd>
-  <dt>SNR / arcsec² — scale-free detection</dt><dd>A dedicated block below the three per-pixel rows: per-pixel SNR ÷ native pixel scale (″/px) — signal-to-noise per unit solid angle rather than per pixel. Unlike per-pixel SNR it is invariant to pixel size, binning and drizzle (a pure function of aperture, time and sky), so it exposes the depth advantage that per-pixel SNR hides when two rigs differ in focal length or binning. Shown for Bright / Medium / Faint, each with a ×N multiplier vs the other system.</dd>
+  <dt>SNR / arcsec² — scale-free detection</dt><dd>A dedicated block below the three per-pixel rows: per-pixel SNR ÷ effective pixel scale (″/px, after binning/drizzle) — signal-to-noise per unit solid angle rather than per pixel. Unlike per-pixel SNR it is invariant to pixel size, binning and drizzle (a pure function of aperture, time and sky), so it exposes the depth advantage that per-pixel SNR hides when two rigs differ in focal length or binning. Shown for Bright / Medium / Faint, each with a ×N multiplier vs the other system.</dd>
   <dt>×N vs other system</dt><dd>The coloured multiplier beside each per-pixel and per-arcsec² value: this system's value ÷ the other's, at that probe level — green when this system leads, the other system's colour when it trails. On matched f-ratios the per-pixel ×N reads ≈1.00 while the per-arcsec² ×N reads the aperture ratio, the clearest single indicator of the metric-vs-picture divergence.</dd>
-  <dt>Detected % of target (3σ)</dt><dd>Fraction of the target's area detected above a 3σ threshold, evaluated per seeing disk (resolution element) rather than per pixel. The noise-free baked source is histogrammed into a cumulative area profile A(f) = fraction of object pixels (above a 0.1%-of-peak isophote) at surface brightness ≥ f·peak; each system's threshold is f<sub>thresh</sub> = 3 / (√N<sub>disk</sub> · SNR<sub>bright</sub>) with N<sub>disk</sub> = π(FWHM/2)² / pixel-scale², and the readout is A(f<sub>thresh</sub>). Because A(f) is object-intrinsic, the A/B gap is pure depth (aperture × time): two rigs with identical per-pixel SNR can detect very different fractions. Shown per system and as an A-vs-B line; a "?" popover beside that line summarises the method in-app. Most rigorous as the relative A/B figure or on an uploaded FITS (real sky) — on procedural targets the absolute % carries the model's faint-end assumption. Uses the base broadband source, so it is exact for same-filter A/B.</dd>
+  <dt>Detected % of target (3σ)</dt><dd>Fraction of the target's area detected above a 3σ threshold, evaluated per seeing disk (resolution element) rather than per pixel. The noise-free baked source is histogrammed into a cumulative area profile A(f) = fraction of object pixels (above a 0.1%-of-peak isophote) at surface brightness ≥ f·peak; each system's threshold is f<sub>thresh</sub> = 3 / (√N<sub>disk</sub> · SNR<sub>bright</sub>) with N<sub>disk</sub> = π(FWHM/2)² / effective-pixel-scale², and the readout is A(f<sub>thresh</sub>). Because A(f) is object-intrinsic, the A/B gap is pure depth (aperture × time): two rigs with identical per-pixel SNR can detect very different fractions. Shown per system and as an A-vs-B line; a "?" popover beside that line summarises the method in-app. Most rigorous as the relative A/B figure or on an uploaded FITS (real sky) — on procedural targets the absolute % carries the model's faint-end assumption. Uses the base broadband source, so it is exact for same-filter A/B.</dd>
   <dt>Export captions</dt><dd>Per-pixel SNR (with ×N), SNR/arcsec² (with ×N) and Detected % of target are all baked into the bottom caption block of the PNG (lossless APNG) and GIF exports, per displayed system, so a shared blink animation is self-documenting.</dd>
 </dl>
 
@@ -7644,7 +7644,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   }, [target, userUploadEpoch]);
   const detPct = (d, k) => {
     if (!detHist) return null;
-    const Ndisk = Math.PI * (d.psf_fwhm_arcsec / 2) * (d.psf_fwhm_arcsec / 2) / (d.native_pixel_scale * d.native_pixel_scale);
+    const Ndisk = Math.PI * (d.psf_fwhm_arcsec / 2) * (d.psf_fwhm_arcsec / 2) / (d.pixel_scale * d.pixel_scale);
     const fth = k / (Math.sqrt(Math.max(1, Ndisk)) * Math.max(0.001, d.snr_bright));
     return detHist.detFrac(fth) * 100;
   };
@@ -11629,7 +11629,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       const snrAreaSegs = (which) => {
         const d = which === "A" ? dA : dB, od = which === "A" ? dB : dA;
         const col = which === "A" ? "#d4a437" : "#5fb3a1";
-        const ps = d.native_pixel_scale, ops = od.native_pixel_scale;
+        const ps = d.pixel_scale, ops = od.pixel_scale;
         const mx = (x, ox) => " \u00d7" + ((x / ps) / Math.max(0.001, ox / ops)).toFixed(2);
         return [
           { t: "SNR / arcsec\u00b2", c: GREY },
@@ -14312,7 +14312,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               const sigmaF = entry.sys.noise_total_faint  / entry.bin;
               const sigmaPeak = entry.sys.noise_breakdown.total / entry.bin;
               // v960: scale-free SNR/arcsec² (native SNR ÷ native ″/px) + ×N vs the other system.
-              const _psA = entry.sys.native_pixel_scale, _psO = entry.other.native_pixel_scale;
+              const _psA = entry.sys.pixel_scale, _psO = entry.other.pixel_scale;
               const arcB = entry.sys.snr_bright / _psA, arcM = entry.sys.snr_medium / _psA, arcF = entry.sys.snr_faint / _psA;
               const arcRB = arcB / Math.max(0.001, entry.other.snr_bright / _psO);
               const arcRM = arcM / Math.max(0.001, entry.other.snr_medium / _psO);
