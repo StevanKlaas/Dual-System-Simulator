@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v966";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v966 \u2014 Fixed SNR/arcsec\u00b2 and detection-% wrongly moving when binning changed: snr_bright is per-binned-pixel (includes bin_area), but the metrics divided by the native pixel scale \u2014 a mismatch. Now paired with the effective (binned/drizzled) pixel scale, so both are correctly invariant under binning and drizzle (bin-1 f-ratio comparisons unchanged). v965 (Helvetica) abandoned.\n\n\u2022 v964 \u2014 Detection '?' help popover was clipped by the section bounds (position:absolute); switched it to a fixed, centred panel with a tap-to-dismiss backdrop (also iPad-friendly).\n\n\u2022 v963 \u2014 Fixed the detection-fraction readout showing blank/no number: the detHist memo ran before procMapCache/getCachedMap were initialised (temporal dead zone), so getDSOTarget threw and it fell back to null. Moved it below getDSOTarget. Made the per-system 'Detected % of target' a prominent boxed metric with a large number.\n\n\u2022 v962 \u2014 Documented SNR/arcsec\u00b2, \u00d7N and detection-fraction in \u00a72.6; added a '?' help popover on the detection line.\n\n\u2022 v960\u2013v961 \u2014 SNR/arcsec\u00b2 prominent block + \u00d7N multipliers; detection-fraction metric; dead GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v967";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v967 \u2014 Detection threshold still moved at high binning (bin 6): the per-seeing-disk normalization clamped N_disk to 1 when the seeing disk was sub-pixel, so snr_bright's per-bin growth stopped cancelling. Switched detection to a per-arcsec\u00b2 threshold (f_thresh = k / (SNR/arcsec\u00b2)): no clamp, exactly binning/drizzle-invariant, seeing-independent (extended-source depth is photon-limited), and unified with the SNR/arcsec\u00b2 row.\n\n\u2022 v966 \u2014 Fixed SNR/arcsec\u00b2 and detection-% wrongly moving when binning changed: snr_bright is per-binned-pixel (includes bin_area), but the metrics divided by the native pixel scale \u2014 a mismatch. Now paired with the effective (binned/drizzled) pixel scale, so both are correctly invariant under binning and drizzle (bin-1 f-ratio comparisons unchanged). v965 (Helvetica) abandoned.\n\n\u2022 v964 \u2014 Detection '?' help popover was clipped by the section bounds (position:absolute); switched it to a fixed, centred panel with a tap-to-dismiss backdrop (also iPad-friendly).\n\n\u2022 v963 \u2014 Fixed the detection-fraction readout showing blank/no number: the detHist memo ran before procMapCache/getCachedMap were initialised (temporal dead zone), so getDSOTarget threw and it fell back to null. Moved it below getDSOTarget. Made the per-system 'Detected % of target' a prominent boxed metric with a large number.\n\n\u2022 v962 \u2014 Documented SNR/arcsec\u00b2, \u00d7N and detection-fraction in \u00a72.6; added a '?' help popover on the detection line.\n\n\u2022 v960\u2013v961 \u2014 SNR/arcsec\u00b2 prominent block + \u00d7N multipliers; detection-fraction metric; dead GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v966</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v967</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1085,7 +1085,7 @@ export default function DualSystemSimulator() {
   <dt>Dominant-probe selector</dt><dd>Controls which probe drives the "winner" label so the comparison reflects the user's visual priority (bright extended ring vs faint outer halo, etc.).</dd>
   <dt>SNR / arcsec² — scale-free detection</dt><dd>A dedicated block below the three per-pixel rows: per-pixel SNR ÷ effective pixel scale (″/px, after binning/drizzle) — signal-to-noise per unit solid angle rather than per pixel. Unlike per-pixel SNR it is invariant to pixel size, binning and drizzle (a pure function of aperture, time and sky), so it exposes the depth advantage that per-pixel SNR hides when two rigs differ in focal length or binning. Shown for Bright / Medium / Faint, each with a ×N multiplier vs the other system.</dd>
   <dt>×N vs other system</dt><dd>The coloured multiplier beside each per-pixel and per-arcsec² value: this system's value ÷ the other's, at that probe level — green when this system leads, the other system's colour when it trails. On matched f-ratios the per-pixel ×N reads ≈1.00 while the per-arcsec² ×N reads the aperture ratio, the clearest single indicator of the metric-vs-picture divergence.</dd>
-  <dt>Detected % of target (3σ)</dt><dd>Fraction of the target's area detected above a 3σ threshold, evaluated per seeing disk (resolution element) rather than per pixel. The noise-free baked source is histogrammed into a cumulative area profile A(f) = fraction of object pixels (above a 0.1%-of-peak isophote) at surface brightness ≥ f·peak; each system's threshold is f<sub>thresh</sub> = 3 / (√N<sub>disk</sub> · SNR<sub>bright</sub>) with N<sub>disk</sub> = π(FWHM/2)² / effective-pixel-scale², and the readout is A(f<sub>thresh</sub>). Because A(f) is object-intrinsic, the A/B gap is pure depth (aperture × time): two rigs with identical per-pixel SNR can detect very different fractions. Shown per system and as an A-vs-B line; a "?" popover beside that line summarises the method in-app. Most rigorous as the relative A/B figure or on an uploaded FITS (real sky) — on procedural targets the absolute % carries the model's faint-end assumption. Uses the base broadband source, so it is exact for same-filter A/B.</dd>
+  <dt>Detected % of target (3σ)</dt><dd>Fraction of the target's area detected above a 3σ threshold, evaluated per arcsec² (the conventional surface-brightness unit). The noise-free baked source is histogrammed into a cumulative area profile A(f) = fraction of object pixels (above a 0.1%-of-peak isophote) at surface brightness ≥ f·peak; each system's threshold is f<sub>thresh</sub> = 3 / (SNR/arcsec²) = 3 · (effective pixel scale) / SNR<sub>bright</sub>, and the readout is A(f<sub>thresh</sub>). It is seeing-independent (extended-source depth is set by photons, not seeing) and binning/drizzle-invariant. Because A(f) is object-intrinsic, the A/B gap is pure depth (aperture × time): two rigs with identical per-pixel SNR can detect very different fractions. Shown per system and as an A-vs-B line; a "?" popover beside that line summarises the method in-app. Most rigorous as the relative A/B figure or on an uploaded FITS (real sky) — on procedural targets the absolute % carries the model's faint-end assumption. Uses the base broadband source, so it is exact for same-filter A/B.</dd>
   <dt>Export captions</dt><dd>Per-pixel SNR (with ×N), SNR/arcsec² (with ×N) and Detected % of target are all baked into the bottom caption block of the PNG (lossless APNG) and GIF exports, per displayed system, so a shared blink animation is self-documenting.</dd>
 </dl>
 
@@ -7617,8 +7617,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // v961/v963: detection-fraction metric (defined after getDSOTarget so procMapCache is initialised). Histogram the baked noise-free source
   // (getDSOTarget ha+oiii+bb) into a cumulative area function A(f) = fraction of
   // object pixels (above a 0.1%-of-peak isophote) with surface brightness >= f*peak.
-  // Per system the kσ threshold is f_thresh = k / (sqrt(N_seeingdisk)*snr_bright),
-  // N_seeingdisk = π(FWHM/2)²/native_pixscale² (scale-invariant). detFrac(f_thresh)
+  // Per system the kσ threshold is f_thresh = k / (SNR per arcsec²), where SNR/arcsec²
+  // = snr_bright / effective-pixel-scale (seeing-independent). detFrac(f_thresh)
   // = % of the target detected. A(f) is object-intrinsic, so the A/B gap is pure depth
   // (aperture × time). Uses the base (broadband) source: exact for same-filter A/B,
   // indicative under differing narrowband filters.
@@ -7644,8 +7644,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   }, [target, userUploadEpoch]);
   const detPct = (d, k) => {
     if (!detHist) return null;
-    const Ndisk = Math.PI * (d.psf_fwhm_arcsec / 2) * (d.psf_fwhm_arcsec / 2) / (d.pixel_scale * d.pixel_scale);
-    const fth = k / (Math.sqrt(Math.max(1, Ndisk)) * Math.max(0.001, d.snr_bright));
+    // per arcsec² (fixed reference) -> seeing-independent and binning/drizzle-invariant.
+    // SNR over 1 arcsec² = snr_bright / effective-pixel-scale, so f_thresh = k / (SNR/arcsec²).
+    const snrArcsec = Math.max(0.001, d.snr_bright) / Math.max(0.001, d.pixel_scale);
+    const fth = k / snrArcsec;
     return detHist.detFrac(fth) * 100;
   };
 
@@ -11643,7 +11645,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         const col = which === "A" ? "#d4a437" : "#5fb3a1";
         const p = detPct(d, 3);
         if (p == null) return [{ t: "detected \u2014", c: GREY }];
-        return [{ t: "detected", c: GREY }, { t: p.toFixed(0) + "% of target", c: col }, { t: "3\u03c3 / seeing disk", c: "#7a879e" }];
+        return [{ t: "detected", c: GREY }, { t: p.toFixed(0) + "% of target", c: col }, { t: "3\u03c3 / arcsec\u00b2", c: "#7a879e" }];
       };
       const botRowsFor = (active) => [psfSegs(active), sensorSegs(active), snrSegs(active), snrAreaSegs(active), detSegs(active)];
 
@@ -14411,7 +14413,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                       <div style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: entry.color, opacity: 0.85, marginBottom: 2 }}>Detected · scale-free depth</div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                         <span style={{ fontSize: 26, fontWeight: 700, color: entry.color }}>{p == null ? "—" : p.toFixed(0) + "%"}</span>
-                        <span style={{ fontSize: 10, color: "#8b96a8" }}>of target above 3σ · per seeing disk</span>
+                        <span style={{ fontSize: 10, color: "#8b96a8" }}>of target above 3σ · per arcsec²</span>
                       </div>
                     </div>
                   ); })()}
@@ -14427,7 +14429,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             </span>
             {detHist && (() => { const pa = detPct(dA, 3), pb = detPct(dB, 3); if (pa == null || pb == null) return null; return (
               <div style={{ marginTop: 6, color: "#9aa5bb", position: "relative", display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                <span>Detected above 3σ (per seeing disk): <span style={{ color: "#d4a437" }}>A {pa.toFixed(0)}%</span> · <span style={{ color: "#5fb3a1" }}>B {pb.toFixed(0)}%</span> of the target</span>
+                <span>Detected above 3σ (per arcsec²): <span style={{ color: "#d4a437" }}>A {pa.toFixed(0)}%</span> · <span style={{ color: "#5fb3a1" }}>B {pb.toFixed(0)}%</span> of the target</span>
                 <button onClick={() => setShowDetHelp(s => !s)} title="What does 'Detected % of target' mean?" style={{ background: showDetHelp ? "#5fb3a1" : "rgba(10, 16, 28, 0.6)", color: showDetHelp ? "#0a1020" : "#6a7894", border: `1px solid ${showDetHelp ? "#5fb3a1" : "rgba(96, 116, 156, 0.3)"}`, width: 15, height: 15, padding: 0, fontFamily: "JetBrains Mono, monospace", fontSize: 10, cursor: "pointer", borderRadius: "50%", fontWeight: 600, lineHeight: 1, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>?</button>
                 {showDetHelp && (
                   <>
@@ -14437,7 +14439,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                         <span style={{ color: "#5fb3a1", fontWeight: 600 }}>Detected % of target — what this is</span>
                         <button onClick={() => setShowDetHelp(false)} style={{ background: "transparent", border: "none", color: "#8b96a8", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "0 2px" }}>×</button>
                       </div>
-                      The fraction of the target's <b>area</b> whose surface brightness clears a <b>3σ</b> threshold, judged per <b>seeing disk</b> (resolution element), not per pixel. The noise-free source is histogrammed into A(f) = fraction of object pixels (above a 0.1%-of-peak isophote) at brightness ≥ f·peak. Each system's threshold is f<sub>thresh</sub> = 3 / (√N<sub>disk</sub> · SNR<sub>bright</sub>), N<sub>disk</sub> = π(FWHM/2)² / pixscale² — set by <b>aperture × time × seeing</b>, independent of pixel size or binning. The readout is A(f<sub>thresh</sub>).
+                      The fraction of the target's <b>area</b> whose surface brightness clears a <b>3σ</b> threshold, judged per <b>arcsec²</b> (the conventional surface-brightness unit). The noise-free source is histogrammed into A(f) = fraction of object pixels (above a 0.1%-of-peak isophote) at brightness ≥ f·peak. Each system's threshold is f<sub>thresh</sub> = 3 / (SNR/arcsec²) — set by <b>aperture × time × sky</b>, independent of pixel size, binning and seeing. The readout is A(f<sub>thresh</sub>).
                       <div style={{ marginTop: 8, color: "#9aa5bb" }}>A(f) is object-intrinsic, so the A/B gap is pure depth: two rigs with identical per-pixel SNR can detect very different fractions if apertures differ. Most reliable as the <b>A-vs-B</b> figure, or on an <b>uploaded FITS</b> (real sky); on procedural targets the absolute % reflects the model's faint end. Base broadband source — exact for same-filter A/B. (§2.6)</div>
                       <div style={{ marginTop: 8, fontSize: 9, color: "#6a7894", textAlign: "center" }}>tap outside or × to close</div>
                     </div>
