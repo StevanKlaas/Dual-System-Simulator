@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v979";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v979 \u2014 Fixed the boot splash appearing with a delay (blank page \u2192 bounce risk): the detection-fraction memo (v961) ran during the first render and baked the procedural sky synchronously, blocking the initial paint. It now skips the bake until after the first render, so the 'Starting up' card shows instantly; the bake happens with the splash up, and the metric fills in right after.\n\n\u2022 v978 \u2014 Reverted the Whites auto-render: it now commits on release and applies when the Render button is pressed, exactly like every other slider (consistent workflow). The v976 curve is unchanged \u2014 the earlier 'no effect' was simply an un-rendered frame.\n\n\u2022 v977 (superseded) \u2014 Diagnosed the Whites slider looking dead: it never triggered a render. All sliders require the Render button by design, so moving Whites only armed it \u2014 the two 'extreme' frames were the same un-rendered image (pixel-identical). The curve was correct and fully wired the whole time. Whites now auto-renders on release (cheap: stretch-only, captured-buffer cache hit), so the effect applies immediately.\n\n\u2022 v976 \u2014 Whites slider reworked: (1) flipped to left-low / right-high (left lowers whites, right raises \u2014 same logic as shadows/intensity), readout 'lower/neutral/raise'; (2) much stronger \u2014 knee 0.45 + a 0.65 ceiling drop so it visibly tones down bright galaxy cores instead of only biting right at 1.0. Per channel.\n\n\u2022 v975 \u2014 Reworked the Highlights control into a 'Whites' recovery. The old curve reshaped the upper band but pinned white at 1.0, so it never toned down bloated/clipped pixels. The new curve LOWERS the white ceiling (positive = recover), pulling near-white pixels into a visible tonal range per channel so blown cores regain gradient and colour; knee raised to 0.6 to target whites, not midtones. Renamed Highlights\u2192Whites (recover/bloat).\n\n\u2022 v974 \u2014 THE plume source: the cam-scale sampling loop's off-bake branch clamped to the nearest bake-edge pixel and multiplied by exp(-overshoot/60), replicating edge stars into decaying vertical streaks \u2014 and it ran before the blur/resample, so v972/v973 couldn't catch it. Uploads now get a clean cut (off-image = 0) at both cam-scale sites. JS-only path (uploads don't use the GPU source shaders). v972 blur zero-pad and v973 resample clean-cut kept as correct edge behaviour.\n\n\u2022 v973 \u2014 resample clean-cut (off-source=0): the cam\u2192canvas resample copied the clamped EDGE pixel for any canvas pixel mapping outside the image, replicating bright edge stars into vertical streaks. Now a clean cut \u2014 off-image is sky (0) \u2014 in both the JS and WGSL resample. (v971 feather and v972 blur zero-pad were partial; the blur zero-pad is kept as correct edge behaviour.) Black-point slider gained a tap-anywhere track-jump (v972).\n\n\u2022 v970 \u2014 Added the 'why you see more than the %' perceptual note to the detection popover and \u00a72.6.\n\n\u2022 v960\u2013v969 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes (binning/drizzle/seeing invariance, background-noise floor); GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v980";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v979</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v980</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -3366,14 +3366,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   if (P.axis == 0u) {
     // Horizontal pass: sweep along x, clamp at column edges.
     for (var k: i32 = -r; k <= r; k = k + 1) {
-      let sx = cx + k;
-      if (sx >= 0 && sx < W) { sum = sum + src[u32(cy * W + sx)] * kernel_buf[u32(k + r)]; }
+      let sx = clamp(cx + k, 0, W - 1);
+      sum = sum + src[u32(cy * W + sx)] * kernel_buf[u32(k + r)];
     }
   } else {
     // Vertical pass: sweep along y, clamp at row edges.
     for (var k: i32 = -r; k <= r; k = k + 1) {
-      let sy = cy + k;
-      if (sy >= 0 && sy < H) { sum = sum + src[u32(sy * W + cx)] * kernel_buf[u32(k + r)]; }
+      let sy = clamp(cy + k, 0, H - 1);
+      sum = sum + src[u32(sy * W + cx)] * kernel_buf[u32(k + r)];
     }
   }
   dst[u32(cy * W + cx)] = sum;
@@ -11311,8 +11311,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       for (let x = 0; x < w; x++) {
         let v = 0;
         for (let k = -radius; k <= radius; k++) {
-          const xx = x + k;
-          if (xx >= 0 && xx < w) v += src[y * w + xx] * kernel[k + radius];
+          const xx = Math.max(0, Math.min(w - 1, x + k));
+          v += src[y * w + xx] * kernel[k + radius];
         }
         tmp[y * w + x] = v;
       }
@@ -11323,8 +11323,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       for (let x = 0; x < w; x++) {
         let v = 0;
         for (let k = -radius; k <= radius; k++) {
-          const yy = y + k;
-          if (yy >= 0 && yy < h) v += tmp[yy * w + x] * kernel[k + radius];
+          const yy = Math.max(0, Math.min(h - 1, y + k));
+          v += tmp[yy * w + x] * kernel[k + radius];
         }
         out[y * w + x] = v;
       }
