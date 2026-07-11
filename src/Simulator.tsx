@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v970";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v970 \u2014 Added a succinct 'why you see more than the %' note to the detection '?' popover and \u00a72.6: the metric counts per-arcsec\u00b2 3\u03c3 detection, but the eye integrates each feature over its footprint (deeper) and the stretch lifts sub-threshold signal, so visible arms can sit below the statistical bar.\n\n\u2022 v969 \u2014 Detection threshold now uses the true background noise floor (sky+dark+read) straight from the noise breakdown, instead of the faint-probe proxy: f_thresh = k·pixel-scale·σ_bg / S_peak. Exact regardless of regime; the faint-probe version still under-reported under bright sky (5% of peak carries source shot there), pulling e.g. System A too low. Still binning/drizzle-invariant and seeing-independent.\n\n\u2022 v968 \u2014 Detection fraction read far too low (e.g. 38% on an obviously-detected galaxy): the threshold was anchored on snr_bright, but the peak (nucleus) is source-shot-limited, not background-limited, so it understated depth. Re-anchored on the background-limited faint probe (f_thresh = 0.05·k·pixel-scale / snr_faint), which is the correct 'signal = k×background-noise' floor. Still binning/drizzle-invariant and seeing-independent.\n\n\u2022 v967 \u2014 Detection threshold still moved at high binning (bin 6): the per-seeing-disk normalization clamped N_disk to 1 when the seeing disk was sub-pixel, so snr_bright's per-bin growth stopped cancelling. Switched detection to a per-arcsec\u00b2 threshold (f_thresh = k / (SNR/arcsec\u00b2)): no clamp, exactly binning/drizzle-invariant, seeing-independent (extended-source depth is photon-limited), and unified with the SNR/arcsec\u00b2 row.\n\n\u2022 v966 \u2014 Fixed SNR/arcsec\u00b2 and detection-% wrongly moving when binning changed: snr_bright is per-binned-pixel (includes bin_area), but the metrics divided by the native pixel scale \u2014 a mismatch. Now paired with the effective (binned/drizzled) pixel scale, so both are correctly invariant under binning and drizzle (bin-1 f-ratio comparisons unchanged). v965 (Helvetica) abandoned.\n\n\u2022 v964 \u2014 Detection '?' help popover was clipped by the section bounds (position:absolute); switched it to a fixed, centred panel with a tap-to-dismiss backdrop (also iPad-friendly).\n\n\u2022 v963 \u2014 Fixed the detection-fraction readout showing blank/no number: the detHist memo ran before procMapCache/getCachedMap were initialised (temporal dead zone), so getDSOTarget threw and it fell back to null. Moved it below getDSOTarget. Made the per-system 'Detected % of target' a prominent boxed metric with a large number.\n\n\u2022 v962 \u2014 Documented SNR/arcsec\u00b2, \u00d7N and detection-fraction in \u00a72.6; added a '?' help popover on the detection line.\n\n\u2022 v960\u2013v961 \u2014 SNR/arcsec\u00b2 prominent block + \u00d7N multipliers; detection-fraction metric; dead GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v978";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v978 \u2014 Reverted the Whites auto-render: it now commits on release and applies when the Render button is pressed, exactly like every other slider (consistent workflow). The v976 curve is unchanged \u2014 the earlier 'no effect' was simply an un-rendered frame.\n\n\u2022 v977 (superseded) \u2014 Diagnosed the Whites slider looking dead: it never triggered a render. All sliders require the Render button by design, so moving Whites only armed it \u2014 the two 'extreme' frames were the same un-rendered image (pixel-identical). The curve was correct and fully wired the whole time. Whites now auto-renders on release (cheap: stretch-only, captured-buffer cache hit), so the effect applies immediately.\n\n\u2022 v976 \u2014 Whites slider reworked: (1) flipped to left-low / right-high (left lowers whites, right raises \u2014 same logic as shadows/intensity), readout 'lower/neutral/raise'; (2) much stronger \u2014 knee 0.45 + a 0.65 ceiling drop so it visibly tones down bright galaxy cores instead of only biting right at 1.0. Per channel.\n\n\u2022 v975 \u2014 Reworked the Highlights control into a 'Whites' recovery. The old curve reshaped the upper band but pinned white at 1.0, so it never toned down bloated/clipped pixels. The new curve LOWERS the white ceiling (positive = recover), pulling near-white pixels into a visible tonal range per channel so blown cores regain gradient and colour; knee raised to 0.6 to target whites, not midtones. Renamed Highlights\u2192Whites (recover/bloat).\n\n\u2022 v974 \u2014 THE plume source: the cam-scale sampling loop's off-bake branch clamped to the nearest bake-edge pixel and multiplied by exp(-overshoot/60), replicating edge stars into decaying vertical streaks \u2014 and it ran before the blur/resample, so v972/v973 couldn't catch it. Uploads now get a clean cut (off-image = 0) at both cam-scale sites. JS-only path (uploads don't use the GPU source shaders). v972 blur zero-pad and v973 resample clean-cut kept as correct edge behaviour.\n\n\u2022 v973 \u2014 resample clean-cut (off-source=0): the cam\u2192canvas resample copied the clamped EDGE pixel for any canvas pixel mapping outside the image, replicating bright edge stars into vertical streaks. Now a clean cut \u2014 off-image is sky (0) \u2014 in both the JS and WGSL resample. (v971 feather and v972 blur zero-pad were partial; the blur zero-pad is kept as correct edge behaviour.) Black-point slider gained a tap-anywhere track-jump (v972).\n\n\u2022 v970 \u2014 Added the 'why you see more than the %' perceptual note to the detection popover and \u00a72.6.\n\n\u2022 v960\u2013v969 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes (binning/drizzle/seeing invariance, background-noise floor); GPU galaxy path removed.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v970</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v978</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1070,7 +1070,7 @@ export default function DualSystemSimulator() {
   <dt>Intensity (0.20× to 5.00×)</dt><dd>Log-symmetric slider; scales the asinh stretch input. Neutral mid-point at 1.00×. Reset returns to 1.00×. On a successful image upload it auto-sets to a gentle 0.40× to offset the already-stretched input.</dd>
   <dt>Shadows (0.40 to 1.60)</dt><dd>Applies a post-stretch gamma γ = 2 − shadows to each channel. Neutral at 1.00 (γ = 1.0, identity). Values &lt; 1.00 crush mid-tones, &gt; 1.00 lift them; the readout shows the signed delta from neutral. The procedural Jupiter adds an extra −0.30 offset, so its neutral mid-position behaves as "crush 0.70".</dd>
   <dt>Saturation (0 to 2.5×)</dt><dd>Scales colour saturation about the per-pixel luminance after the stretch — 1.00× is neutral, 0 collapses to monochrome (readout shows "mono"), &gt; 1 deepens colour separation. Luminance is preserved so only chroma moves. Commits on slider release.</dd>
-  <dt>Highlights (−1.00 to +1.00)</dt><dd>A bipolar highlight-shaping knob, applied as a tone curve on the upper range. 0.00 is off; positive values <i>compress</i> highlights (pull bright cores back from clipping, recovering star-core and galaxy-core colour), negative values <i>lift</i> them. The readout shows "off" / "compress N" / "lift N". Commits on slider release.</dd>
+  <dt>Whites (−1.00 to +1.00)</dt><dd>Sets the intensity of the whites (upper band, above ~0.45 of the stretched range) — left-low / right-high, the same logic as the shadows and intensity sliders. <i>Left</i> (negative) <b>lowers</b> the whites: it drops the white ceiling so bloated / clipped-to-white pixels fall into a visible tonal range and the gradient + per-channel colour that were washed out to white re-emerge (applied per channel, so blown cores regain colour). <i>Right</i> (positive) <b>raises</b> them (more bloom). 0.00 neutral. Readout: "lower N" / "neutral" / "raise N". Commits on slider release.</dd>
   <dt>Realism toggles A / B</dt><dd>A = imperfect background subtraction (~0.8 % residual); B = sky gradient (diagonal linear ramp, ~4 % peak-to-peak of the sky pedestal, computed per camera pixel in the cam-scale noise loop). Both the rendered image and the SNR numbers reflect whichever toggles are on.</dd>
   <dt>Drizzle view: Per-frame penalty / Drizzle ceiling</dt><dd>Visible only when at least one system has drizzle &gt; 1. <i>Per-frame penalty</i> (default) applies the 1/D SNR penalty per output pixel. <i>Drizzle ceiling</i> scales read-noise and FPN sigmas by 1/D, the upper bound where ideal sub-pixel dither coverage recovers the SNR penalty. Real result sits between the two. Poisson shot noise stays at per-frame level in both, so the toggle's visible effect is large in read-noise-dominated regimes and small in shot-noise-dominated ones.</dd>
   <dt>Sampling view: Native / Match higher px scale</dt><dd>The match option dims when the two systems' pixel-scale ratio is below 1.4×. <i>Native</i> (default) shows each system at its native pixel scale, honest about per-pixel grain. <i>Match higher px scale</i> aggregates both to the coarser scale = max(px<sub>A</sub>, px<sub>B</sub>): the finer system's electrons are box-averaged by N = round(coarser/finer) down to that grid, then Lanczos-resampled to the canvas; the coarser system is unchanged. Noise σ per displayed pixel drops by N exactly, so the finer system's per-pixel SNR rises by N. This propagates into the SNR readouts, per-probe σ, noise breakdown, and under-image pixel scale; only point-source limiting magnitude and the optical MTF stay native (both resampling-invariant).</dd>
@@ -3366,14 +3366,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   if (P.axis == 0u) {
     // Horizontal pass: sweep along x, clamp at column edges.
     for (var k: i32 = -r; k <= r; k = k + 1) {
-      let sx = clamp(cx + k, 0, W - 1);
-      sum = sum + src[u32(cy * W + sx)] * kernel_buf[u32(k + r)];
+      let sx = cx + k;
+      if (sx >= 0 && sx < W) { sum = sum + src[u32(cy * W + sx)] * kernel_buf[u32(k + r)]; }
     }
   } else {
     // Vertical pass: sweep along y, clamp at row edges.
     for (var k: i32 = -r; k <= r; k = k + 1) {
-      let sy = clamp(cy + k, 0, H - 1);
-      sum = sum + src[u32(sy * W + cx)] * kernel_buf[u32(k + r)];
+      let sy = cy + k;
+      if (sy >= 0 && sy < H) { sum = sum + src[u32(sy * W + cx)] * kernel_buf[u32(k + r)]; }
     }
   }
   dst[u32(cy * W + cx)] = sum;
@@ -3453,6 +3453,15 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // shows cam-pixel structure \u2014 the "minecraft" / PixInsight look that
   // honestly displays the sensor's sampling grid). mode==1 Lanczos-3
   // (mild upsample). mode==0 box-average (downsample).
+  if ((cxC < 0.0) || (cxC > f32(srcW_i - 1)) || (cyC < 0.0) || (cyC > f32(srcH_i - 1))) {
+    // v973: clean cut — off-source is sky (0), never a replicated edge pixel.
+    let idx0 = gid.y * P.dstW + gid.x;
+    dstHa[idx0] = 0.0;
+    dstOi[idx0] = 0.0;
+    dstBb[idx0] = 0.0;
+    dstTot[idx0] = 0.0;
+    return;
+  }
   if (P.mode == 2u) {
     let sxR = i32(round(cxC));
     let syR = i32(round(cyC));
@@ -4819,6 +4828,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   const [showDrizzleViewHelp, setShowDrizzleViewHelp] = useState(false);
   const [showHudHelp, setShowHudHelp] = useState(false); // v926: perf-HUD explainer popover
   const [showDetHelp, setShowDetHelp] = useState(false); // v962: detection-fraction explainer popover
+  const [bpDraft, setBpDraft] = useState(0); // v971: controlled black-point slider (fixes tap-to-jump)
+  useEffect(() => { const _u = userUploadCacheRef.current[target]; setBpDraft((_u && _u.bakeBlackPoint) || 0); }, [target, userUploadEpoch]);
   // v237: Analysis-table help popover toggle (mirrors the realism pattern).
   const [showAnalysisHelp, setShowAnalysisHelp] = useState(false);
   // v88: SNR-vs-sub-length chart dither model toggle.
@@ -8786,6 +8797,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   const bx = cx_base + (x + 0.5 - cxc) * zoom_cam;
                   const by = cy_base + (y + 0.5 - cyc) * zoom_cam;
                   if (bx < 0 || bx >= bake_W - 1 || by < 0 || by >= bake_H - 1) {
+                    if (TARGETS[target] && TARGETS[target].kind === 'image_target') {
+                      // v974: uploads get a clean cut — off-image is sky (0), not a clamped
+                      // edge pixel decayed by edgeFall (that replicated edge stars into plumes).
+                      camHa[y * RW_cam + x] = 0; camOiii[y * RW_cam + x] = 0; camBb[y * RW_cam + x] = 0;
+                      continue;
+                    }
                     const dx = bx < 0 ? -bx : (bx >= bake_W - 1 ? bx - (bake_W - 1) : 0);
                     const dy = by < 0 ? -by : (by >= bake_H - 1 ? by - (bake_H - 1) : 0);
                     const overshoot = Math.sqrt(dx * dx + dy * dy);
@@ -9002,6 +9019,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                     const bx = cx_base + (cxo - cx_canvas) * zoom;
                     const by = cy_base + (cyo - cy_canvas) * zoom;
                     if (bx < 0 || bx >= bake_W - 1 || by < 0 || by >= bake_H - 1) {
+                      if (TARGETS[target] && TARGETS[target].kind === 'image_target') { continue; }  // v974: clean cut for uploads
                       const dx = bx < 0 ? -bx : (bx >= bake_W - 1 ? bx - (bake_W - 1) : 0);
                       const dy = by < 0 ? -by : (by >= bake_H - 1 ? by - (bake_H - 1) : 0);
                       const overshoot = Math.sqrt(dx * dx + dy * dy);
@@ -9922,13 +9940,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               const cy = srcCenterY + (y - cnvCenterY) * canvas_to_src;
               const idx = y * RW + x;
               if (cx < 0 || cx >= srcRW - 1 || cy < 0 || cy >= srcRH - 1) {
-                const sx = Math.max(0, Math.min(srcRW - 1, Math.round(cx)));
-                const sy = Math.max(0, Math.min(srcRH - 1, Math.round(cy)));
-                const j = sy * srcRW + sx;
-                electrons_ha[idx]   = srcHa[j];
-                electrons_oiii[idx] = srcOi[j];
-                electrons_bb[idx]   = srcBb[j];
-                electrons[idx]      = srcHa[j] + srcOi[j] + srcBb[j];
+                // v973: clean cut — off-source is sky (0), not a replicated edge pixel
+                // (that streaked bright edge features into vertical plumes).
+                electrons_ha[idx]   = 0;
+                electrons_oiii[idx] = 0;
+                electrons_bb[idx]   = 0;
+                electrons[idx]      = 0;
                 continue;
               }
               const ix = Math.floor(cx), iy = Math.floor(cy);
@@ -10207,16 +10224,23 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // the slider, which covers the bulk of any galaxy or nebula\u2019s structure.
     const _hlSlider = highlightsCompression;
     const _applyHL = Math.abs(_hlSlider) > 0.001;
-    const _hlKnee = 0.4;
+    // v976: "Whites" intensity, left-low / right-high like the shadows & intensity
+    // sliders. LEFT (negative) lowers the whites: drops the ceiling of the upper band
+    // so bloated/clipped pixels fall into a visible tonal range (revealing gradient and
+    // per-channel colour); RIGHT (positive) raises them (more bloom). Knee 0.45 + a
+    // strong ceiling so it visibly bites on bright galaxy cores. Applied per channel.
+    const _hlKnee = 0.45;
     const _hlSpan = 1.0 - _hlKnee;
     const _hlInvSpan = 1.0 / _hlSpan;
-    const _hlExponent = Math.exp(_hlSlider * 1.3);
     function _hlSoftclip(v) {
       if (v <= _hlKnee) return v;
-      if (v >= 1) return 1;
-      const t = (v - _hlKnee) * _hlInvSpan;
-      const remapped = Math.pow(t, _hlExponent);
-      return _hlKnee + remapped * _hlSpan;
+      const t = (v - _hlKnee) * _hlInvSpan;             // 0..1 within the upper band
+      const w = _hlSlider;                              // <0 lower whites, >0 raise whites
+      const ceil = 1.0 + w * 0.65;                      // w<0 -> ceiling well below 1 (tone down)
+      const p = 1.0 + w * 0.4;                          // w<0 -> exponent<1 (lift low, reveal detail)
+      let shaped = ceil * Math.pow(t, p);
+      if (shaped < 0) shaped = 0; else if (shaped > 1) shaped = 1;
+      return _hlKnee + shaped * _hlSpan;
     }
     const N = electrons.length;
     const _tStretch801 = performance.now();
@@ -11286,8 +11310,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       for (let x = 0; x < w; x++) {
         let v = 0;
         for (let k = -radius; k <= radius; k++) {
-          const xx = Math.max(0, Math.min(w - 1, x + k));
-          v += src[y * w + xx] * kernel[k + radius];
+          const xx = x + k;
+          if (xx >= 0 && xx < w) v += src[y * w + xx] * kernel[k + radius];
         }
         tmp[y * w + x] = v;
       }
@@ -11298,8 +11322,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       for (let x = 0; x < w; x++) {
         let v = 0;
         for (let k = -radius; k <= radius; k++) {
-          const yy = Math.max(0, Math.min(h - 1, y + k));
-          v += tmp[yy * w + x] * kernel[k + radius];
+          const yy = y + k;
+          if (yy >= 0 && yy < h) v += tmp[yy * w + x] * kernel[k + radius];
         }
         out[y * w + x] = v;
       }
@@ -13188,12 +13212,21 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                     <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 10, color: "#6a7894", letterSpacing: "0.06em", textTransform: "uppercase", minWidth: 78 }}>Black pt:</span>
                       <input type="range" min="0" max="0.3" step="0.001"
-                        key={`bp-${userUploadEpoch}`}
-                        defaultValue={userUploadCacheRef.current[target].bakeBlackPoint || 0}
+                        value={bpDraft}
                         onChange={(ev) => {
                           const v = parseFloat(ev.target.value);
+                          setBpDraft(v);
                           if (userUploadCacheRef.current[target]) {
                             userUploadCacheRef.current[target].bakeBlackPoint = v;
+                          }
+                        }}
+                        onPointerDown={(ev) => {
+                          const rect = ev.currentTarget.getBoundingClientRect();
+                          if (rect.width > 0) {
+                            const frac = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+                            const jv = Math.round(frac * 0.3 * 1000) / 1000;
+                            setBpDraft(jv);
+                            if (userUploadCacheRef.current[target]) userUploadCacheRef.current[target].bakeBlackPoint = jv;
                           }
                         }}
                         onPointerUp={(ev) => {
@@ -13216,13 +13249,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                         }}
                         style={{ flex: 1, minWidth: 140, accentColor: "#d4a437" }} />
                       <span style={{ fontSize: 10, color: "#d4a437", fontFamily: "JetBrains Mono, monospace", minWidth: 56, textAlign: "right" }}>
-                        {((userUploadCacheRef.current[target] && userUploadCacheRef.current[target].bakeBlackPoint) || 0).toFixed(3)}
+                        {bpDraft.toFixed(3)}
                       </span>
                       <button onClick={() => {
                           if (userUploadCacheRef.current[target]) {
                             const perCh = userUploadCacheRef.current[target].bakeBlackPointPerChannel;
                             const autoVal = perCh ? ((perCh.ha + perCh.oiii + perCh.bb) / 3) : 0;
                             userUploadCacheRef.current[target].bakeBlackPoint = autoVal;
+                            setBpDraft(autoVal);
                             setUserUploadEpoch(e => e + 1);
                             // v922: no auto-render; user presses Render explicitly.
                             setUploadStatus(s => ({
@@ -13240,6 +13274,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                       <button onClick={() => {
                           if (userUploadCacheRef.current[target]) {
                             userUploadCacheRef.current[target].bakeBlackPoint = 0;
+                            setBpDraft(0);
                             setUserUploadEpoch(e => e + 1);
                             // v922: no auto-render; user presses Render explicitly.
                             setUploadStatus(s => ({
@@ -13838,7 +13873,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 was too tight for procedural targets to feel the effect. */}
             <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", paddingTop: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 280 }}>
-                <span style={{ color: "#6a7894", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", minWidth: 60 }}>Highlights</span>
+                <span style={{ color: "#6a7894", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", minWidth: 60 }}>Whites</span>
                 <input type="range" min="-1" max="1" step="0.02" value={highlightsCompressionDraft}
                   onChange={(e) => setHighlightsCompressionDraft(parseFloat(e.target.value))}
                   onMouseUp={(e) => setHighlightsCompression(parseFloat(e.target.value))}
@@ -13846,9 +13881,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   onPointerUp={(e) => setHighlightsCompression(parseFloat(e.target.value))}
                   style={{ flex: 1, accentColor: "#9b6dd7" }} />
                 <span style={{ color: "#9aa5bb", fontSize: 11, fontFamily: "JetBrains Mono, monospace", minWidth: 70, textAlign: "right" }}>
-                  {Math.abs(highlightsCompressionDraft) < 0.02 ? "off" :
-                   highlightsCompressionDraft > 0 ? `compress ${highlightsCompressionDraft.toFixed(2)}` :
-                   `lift ${Math.abs(highlightsCompressionDraft).toFixed(2)}`}
+                  {Math.abs(highlightsCompressionDraft) < 0.02 ? "neutral" :
+                   highlightsCompressionDraft < 0 ? `lower ${Math.abs(highlightsCompressionDraft).toFixed(2)}` :
+                   `raise ${highlightsCompressionDraft.toFixed(2)}`}
                 </span>
                 <button onClick={() => setHighlightsCompression(0.0)}
                   style={{
