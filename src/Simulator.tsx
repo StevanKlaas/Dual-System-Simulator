@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v980";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v981";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v980</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v981</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1411,6 +1411,21 @@ export default function DualSystemSimulator() {
       dark_0c: 0.003,
       doubling_C: 6,
       hcg_full_well: 8000,
+      hcg_gain: 110,
+    },
+    imx415: {
+      name: "IMX415 \u2014 Odyssey Pro",
+      pixel_um: 1.45,
+      width_px: 3864, height_px: 2192,
+      width_mm: 5.60, height_mm: 3.18,
+      format: "1/2.8\"",
+      adc_bits: 12,
+      qe_peak: 0.80,
+      read_noise_hcg: 3.0,
+      full_well: 8000,
+      dark_0c: 0.003,
+      doubling_C: 6,
+      hcg_full_well: 4000,
       hcg_gain: 110,
     },
     asi585: {
