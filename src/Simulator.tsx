@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v981";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v983";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v981</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v983</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1193,7 +1193,7 @@ export default function DualSystemSimulator() {
 <p class="body">where S<sub>f</sub> = S·f is the target rate scaled by brightness fraction f ∈ {0.05, 0.30, 1.00}. All rates are <i>per binned pixel</i>: S = R<sub>signal</sub>·A<sub>bin</sub>, B = R<sub>sky</sub>·A<sub>bin</sub>, D = R<sub>dark</sub>·A<sub>bin</sub>, where A<sub>bin</sub> is the binning area. Read noise scales as RN = RN<sub>0</sub>·√A<sub>bin</sub> with RN<sub>0</sub> the per-read HCG noise (typically 0.5–1.2 e<sup>−</sup>). N<sub>sub</sub> is the sub count, t<sub>sub</sub> the sub length, and S<sub>tot</sub> = N<sub>sub</sub>·S<sub>f</sub>·t<sub>sub</sub> the stacked signal. The first three terms are pure Poisson shot variance (signal, sky, dark); the fourth is read noise (per-read, not time-integrated); the fifth is fixed-pattern noise with f<sub>FPN</sub> = 0.5 % post-calibration residual.</p>
 <p class="body"><b>Dithering</b> (small pointing shifts between subs) decorrelates the FPN pattern across the stack, beating its variance down by N<sub>dither</sub>. Three regimes selectable on the SNR-vs-sub-length chart: no dither (N<sub>dither</sub> = 1, FPN constant), every 5 subs (N<sub>dither</sub> = N<sub>sub</sub>/5, default), and every sub (N<sub>dither</sub> = N<sub>sub</sub>, aggressive).</p>
 <p class="body"><b>Calibration-residual terms.</b> The last two variance terms σ<sup>2</sup><sub>BG</sub> and σ<sup>2</sup><sub>grad</sub> are toggleable (realism switches A and B). They model imperfections correlated with the sky pedestal rather than pure shot noise. With both off, the formula reduces to the classic CCD equation. Each term is the square of an RMS expressed as a small fraction of the sky pedestal:</p>
-<div class="equation">σ<sup>2</sup><sub>BG</sub> = (0.008·B<sub>tot</sub>)<sup>2</sup>,&nbsp;&nbsp; σ<sup>2</sup><sub>grad</sub> = (0.005·B<sub>tot</sub>)<sup>2</sup></div>
+<div class="equation">σ<sup>2</sup><sub>BG</sub> = (0.0016·B<sub>tot</sub>)<sup>2</sup>,&nbsp;&nbsp; σ<sup>2</sup><sub>grad</sub> = (0.002·B<sub>tot</sub>)<sup>2</sup></div>
 <p class="body">where B<sub>tot</sub> = N<sub>sub</sub>·B·t<sub>sub</sub> is the stacked sky pedestal. These mirror the rendering-side imperfections exactly so SNR numbers stay consistent with the visible image.</p>
 <div class="equation">SNR = (1 / D<sub>z</sub>) · N<sub>sub</sub>·S<sub>f</sub>·t<sub>sub</sub> / σ<sub>total</sub></div>
 <p class="body">The leading factor 1/D<sub>z</sub> is the drizzle SNR penalty: drizzle integer factor D<sub>z</sub> trades per-pixel SNR for resolution by distributing each electron over a finer output grid. With drizzle off (D<sub>z</sub> = 1) the factor vanishes.</p>
@@ -5226,7 +5226,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // Compute SNR at a given fraction of peak signal.
     // Sky/dark/read noise are independent of target signal; only the target shot noise
     // (and FPN, which scales with target signal) change with the brightness fraction.
-    const fpn_frac = 0.005;
+    const fpn_frac = 0.001; // v982: real-world imperfections scaled to 20%
     const dither_groups = Math.max(1, sub_count / 5);
     const drizzle_snr_factor = 1 / sys.drizzle;
     
@@ -5250,20 +5250,20 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       // B (BG residual):  imperfect background subtraction leaves ~0.8% of
       //                   the sky pedestal as bias. The variance from the
       //                   un-subtracted residual sky photons adds in
-      //                   quadrature: var_bg_resid = (0.008 * sky_total)^2.
+      //                   quadrature: var_bg_resid = (0.0016 * sky_total)^2 (v982: 20%).
       // C (sky gradient): ~1% peak-to-peak gradient + ~0.53% mottling on
       //                   the sky photon mean. The RMS contribution is
       //                   ~0.5% of the sky pedestal across the frame.
-      //                   var_gradient = (0.005 * sky_total)^2.
+      //                   var_gradient = (0.002 * sky_total)^2 (v983: gradient at 40%).
       // D (flat residual): removed in v312.
       const sky_total_e = sub_count * B * sys.sub_length;
       const dark_total_e = sub_count * D * sys.sub_length;
       let var_bg_resid = 0, var_gradient = 0;
       if (realismB) {
-        var_bg_resid = (0.008 * sky_total_e) ** 2;
+        var_bg_resid = (0.0016 * sky_total_e) ** 2;
       }
       if (realismC) {
-        var_gradient = (0.005 * sky_total_e) ** 2;
+        var_gradient = (0.002 * sky_total_e) ** 2;
       }
       const total_noise = Math.sqrt(
         var_signal + var_sky + var_dark + var_read + var_fpn
@@ -9274,7 +9274,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     const readSig_R = readSigma * Math.sqrt(0.25);
     const readSig_G = readSigma * Math.sqrt(0.50);
     const readSig_B = readSigma * Math.sqrt(0.25);
-    const fpnSigma = (0.005 / Math.sqrt(d.sub_count / 5)) * ceilingNoiseFactor;
+    const fpnSigma = (0.001 / Math.sqrt(d.sub_count / 5)) * ceilingNoiseFactor;
     
     // v312 realismC handling: diagonal linear sky gradient ONLY. The previous
     // low-frequency mottling (two sin terms producing blotchy patterns) was
@@ -9291,9 +9291,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // the signal value instead, double-adding signal. Both bugs are now gone.
     // The gradient is computed inline per pixel in the noise loop below.
     // gradDx, gradDy form a unit vector pointing at 30° from the horizontal —
-    // the diagonal ramp direction. gradAmp = 0.03 × skyMean keeps the same
-    // ~4 % peak-to-peak gradient amplitude as the v312 block intended.
-    const gradAmp = skyMean * 0.03;
+    // the diagonal ramp direction. v983: gradAmp = 0.012 × skyMean (~1.6 %
+    // peak-to-peak) — gradient at 40% of prior (FPN and BG-residual stay at 20%).
+    const gradAmp = skyMean * 0.012;
     const gradDx = Math.cos(Math.PI / 6);
     const gradDy = -Math.sin(Math.PI / 6);
     
@@ -12177,7 +12177,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     const { S: SB, B: BB, D: DB, Nr_eff: NrB, bin_area: binB } = dB;
     const drA = sysA.drizzle || 1;
     const drB = sysB.drizzle || 1;
-    const fpn_frac = 0.005;  // same constant as deriveSystem
+    const fpn_frac = 0.001;  // same constant as deriveSystem (v982: 20%)
     // SNR for one (system, fraction, t_sub) with fractional n_sub, mirroring
     // the variance breakdown in deriveSystem.snrAtFraction.
     // v88: dither_groups depends on subLengthDitherMode so the user can
@@ -12199,8 +12199,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       const sky_tot = n_sub * B * t_sub;
       const dark_tot = n_sub * D * t_sub;
       let var_bg = 0, var_grad = 0;
-      if (realismB) var_bg   = (0.008 * sky_tot) ** 2;
-      if (realismC) var_grad = (0.005 * sky_tot) ** 2;
+      if (realismB) var_bg   = (0.0016 * sky_tot) ** 2;
+      if (realismC) var_grad = (0.002 * sky_tot) ** 2;
       const noise = Math.sqrt(var_signal + var_sky + var_dark + var_read + var_fpn + var_bg + var_grad);
       return (sig_total / noise) / drizzle;
     }
