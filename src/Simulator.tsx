@@ -893,8 +893,8 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v983";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  const SIM_VERSION = "v985";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v985 \u2014 Reflection nebula: renamed to 'Reflection Nebula (Faint)' and brightened its default so it isn't dark on first bake \u2014 slider-neutral now equals Intensity 2.63\u00d7 + Shadows +0.47 (stretchBaseline 0.38, shadowsBaseline 1.47).\n\n\u2022 v984 \u2014 Added a procedural Reflection nebula target (gallery variant D): three illuminators with organic blue scattered-light filaments, a warm ridged dust complex + opaque dark core, and faint outer shells at the edge of detection. Direct-RGB (broadband_rgb) compose, 1\u2033/basepx (field 21.3\u2032\u00d713.3\u2032). Correctly just dims under narrowband.\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +904,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v983</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v985</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1629,6 +1629,20 @@ export default function DualSystemSimulator() {
       broadband: 1.0, ha: 1.0, oiii: 1.0, channelMode: "broadband_rgb", kind: "galaxy_realistic",
       aperture_comparison_arcmin: 6,
       actual_displayed_arcmin: 30,
+    },
+    reflection_neb: {
+      label: "Reflection Nebula (Faint)",
+      // Starlight scattered off dust = pure continuum -> direct R/G/B (ha=R,
+      // oiii=G, bb=B), all broadband, so a narrowband filter correctly just dims
+      // the whole object. 1.0"/basepx (detail to ~1"); field 21.3' x 13.3'.
+      broadband: 1.0, ha: 1.0, oiii: 1.0, channelMode: "broadband_rgb", kind: "reflection_realistic",
+      aperture_comparison_arcmin: 5,
+      actual_displayed_arcmin: 21,
+      // v985: brighter default so it isn't dark on first bake. Slider-neutral
+      // renders like Intensity 2.63x (stretchBaseline = 1/2.63) and Shadows
+      // +0.47 (shadowsBaseline = 1.47). User can still slide from there.
+      stretchBaseline: 0.38,
+      shadowsBaseline: 1.47,
     },
     planetary_neb: { 
       label: "Planetary nebula · small, OIII-bright (Ring, Cat's Eye-like)",
@@ -7198,6 +7212,85 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // Adapter: build the realistic-galaxy model and bake into the simulator's
   // (ha, oiii, bb) Float32Arrays. Returns the simulator-standard interface
   // { ha, oiii, bb, sampleAt(bx, by) }.
+  // v984: Reflection nebula (variant D from the gallery prototype). Blue scattered
+  // light around three illuminators (organic domain-warped ridged filaments confined
+  // to each star's vicinity), a warm-brown ridged dust complex with a dense opaque
+  // dark core, and faint outer shells at the edge of detection (~1% of peak). Planes
+  // encode LINEAR R/G/B (reflection nebulae are pure continuum) -> direct-RGB /
+  // broadband_rgb compose path. 1.0"/basepx (detail to ~1"). Standard contract; ha=R.
+  function gen_reflectionNebMap() {
+    const W = IMG_W, H = IMG_H, APB = 1.0;
+    const R = new Float32Array(W * H), G = new Float32Array(W * H), B = new Float32Array(W * H);
+    const seed = 133, dustAng = 0.55;
+    const DARK = { x: 380, y: 300, r: 120 };
+    const ILL = [
+      { x: 640, y: 420, lum: 1.00, wispAng: 0.15,  wispLen: 150 },
+      { x: 880, y: 250, lum: 0.70, wispAng: -0.65, wispLen: 100 },
+      { x: 460, y: 610, lum: 0.55, wispAng: 1.05,  wispLen: 85 },
+    ];
+    function hash(x, y, s) { let h = Math.sin(x * 127.1 + y * 311.7 + s * 0.017) * 43758.5453; return h - Math.floor(h); }
+    function vnoise(x, y, s) {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+      const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+      const a = hash(xi, yi, s), b = hash(xi + 1, yi, s), c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s);
+      return a * (1 - u) * (1 - v) + b * u * (1 - v) + c * (1 - u) * v + d * u * v;
+    }
+    function fbm(x, y, oct, freq, pers, s) { let v = 0, amp = 1, tot = 0, f = freq; for (let i = 0; i < oct; i++) { v += vnoise(x * f, y * f, s + i * 7) * amp; tot += amp; amp *= pers; f *= 2.03; } return v / tot; }
+    function ridged(x, y, oct, freq, pers, s) { let v = 0, amp = 1, tot = 0, f = freq; for (let i = 0; i < oct; i++) { const n = 1 - Math.abs(2 * vnoise(x * f, y * f, s + i * 13) - 1); v += n * n * amp; tot += amp; amp *= pers; f *= 2.11; } return v / tot; }
+    const ca = Math.cos(dustAng), sa = Math.sin(dustAng);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        const nx = x / H, ny = y / H;
+        const rx = (x - W * 0.5) * ca + (y - H * 0.5) * sa;
+        const ry = -(x - W * 0.5) * sa + (y - H * 0.5) * ca;
+        const bodyEnv = Math.exp(-Math.pow(Math.abs(rx) / 520, 2.2) - Math.pow(Math.abs(ry) / 240, 2.0));
+        const bodyTex = 0.35 + 0.65 * ridged(nx, ny, 6, 3.0, 0.55, seed);
+        const fine = fbm(nx, ny, 5, 46.0, 0.5, seed + 31);
+        const dust = bodyEnv * bodyTex * (0.75 + 0.45 * fine);
+        const ddx = x - DARK.x, ddy = y - DARK.y;
+        const dcore = Math.exp(-(ddx * ddx + ddy * ddy) / (2 * DARK.r * DARK.r));
+        const coreTex = 0.55 + 0.45 * ridged(nx * 1.7, ny * 1.7, 5, 5.0, 0.5, seed + 57);
+        const extinction = Math.min(1, dcore * 1.35 * coreTex);
+        let blue = 0;
+        for (let k = 0; k < ILL.length; k++) {
+          const il = ILL[k];
+          const dx = x - il.x, dy = y - il.y;
+          const wa = il.wispAng, cw = Math.cos(wa), sw = Math.sin(wa);
+          const px = dx * cw + dy * sw, py = -dx * sw + dy * cw;
+          const r2 = dx * dx + dy * dy;
+          const halo = il.lum / Math.pow(1 + r2 / (24 * 24), 1.05);
+          const vic = Math.exp(-r2 / (il.wispLen * il.wispLen));
+          const warpX = 62 * (fbm(nx * 1.3 + k * 0.9, ny * 1.3, 3, 1.9, 0.6, seed + 13 + k) - 0.5);
+          const warpY = 62 * (fbm(nx * 1.3, ny * 1.3 + k * 0.9, 3, 1.9, 0.6, seed + 29 + k) - 0.5);
+          const fx = (px + warpX) * 0.0085, fy = (py + warpY) * 0.075;
+          const streak = Math.pow(ridged(fx, fy, 5, 1.0, 0.55, seed + 91 + k * 17), 2.4);
+          const breakup = 0.22 + 1.5 * fbm(nx * 2.6 + k, ny * 2.6, 4, 7.5, 0.5, seed + 61 + k);
+          const wisp = il.lum * 1.05 * vic * streak * breakup;
+          blue += halo + wisp;
+        }
+        const shellR = Math.sqrt(rx * rx * 0.55 + ry * ry * 1.35);
+        const shell = 0.014 * Math.exp(-Math.pow((shellR - 330) / 120, 2)) * (0.5 + 0.5 * fbm(nx * 0.7, ny * 0.7, 4, 2.2, 0.55, seed + 131));
+        const outerHaze = 0.008 * Math.exp(-shellR / 420) * (0.6 + 0.4 * fbm(nx, ny, 3, 1.4, 0.6, seed + 151));
+        const trans = 1 - extinction, faint = shell + outerHaze;
+        R[idx] = (dust * 0.30 * 1.00 + blue * 0.14 + faint * 0.34) * trans + extinction * 0.010;
+        G[idx] = (dust * 0.30 * 0.72 + blue * 0.40 + faint * 0.56) * trans + extinction * 0.007;
+        B[idx] = (dust * 0.30 * 0.46 + blue * 1.22 + faint * 1.08) * trans + extinction * 0.005;
+      }
+    }
+    let peak = 0;
+    for (let i = 0; i < R.length; i++) { if (R[i] > peak) peak = R[i]; if (G[i] > peak) peak = G[i]; if (B[i] > peak) peak = B[i]; }
+    const inv = peak > 0 ? 1 / peak : 1;
+    for (let i = 0; i < R.length; i++) { R[i] *= inv; G[i] *= inv; B[i] *= inv; }
+    function sampleAt(bx, by) {
+      if (bx < 0 || bx >= W - 1 || by < 0 || by >= H - 1) return { ha: 0, oiii: 0, bb: 0 };
+      const x0 = Math.floor(bx), y0 = Math.floor(by), fx = bx - x0, fy = by - y0, i0 = y0 * W + x0;
+      const bl = (a) => a[i0] * (1 - fx) * (1 - fy) + a[i0 + 1] * fx * (1 - fy) + a[i0 + W] * (1 - fx) * fy + a[i0 + W + 1] * fx * fy;
+      return { ha: bl(R), oiii: bl(G), bb: bl(B) };
+    }
+    return { ha: R, oiii: G, bb: B, sampleAt, bake_field_arcsec: H * APB };
+  }
+
   function gen_realisticGalaxyMap(knotBoost) {
     knotBoost = (knotBoost > 0) ? knotBoost : 1;  // v946: HII-knot line boost = ha_pass/broadband_pass
     const GALAXY_PARAMS = {
@@ -7556,12 +7649,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     if (!t) return getCachedMap('emission_wide', gen_emissionNebMap);
     if (useLocal) {
       if (t.kind === "emission") return getCachedMap('emission_local', gen_emissionNebMapLocal);
+      if (t.kind === "reflection_realistic") return getCachedMap('reflection_realistic', gen_reflectionNebMap);
       if (t.kind === "galaxy_realistic") return getCachedMap('galaxy_realistic_' + ((knotBoost > 0 ? knotBoost : 1).toFixed(3)), () => gen_realisticGalaxyMap(knotBoost));
       if (t.kind === "jupiter_realistic") return getCachedMap('jupiter_realistic', gen_jupiterRealisticMap);
       if (t.kind === "pn") return getCachedMap('pn_local', gen_planetaryNebMapLocal);
       if (t.kind === "gc") return getCachedMap('gc_local', gen_globularClusterMapLocal);
     }
     if (t.kind === "emission") return getCachedMap('emission_wide', gen_emissionNebMap);
+    if (t.kind === "reflection_realistic") return getCachedMap('reflection_realistic', gen_reflectionNebMap);
     if (t.kind === "galaxy_realistic") return getCachedMap('galaxy_realistic_' + ((knotBoost > 0 ? knotBoost : 1).toFixed(3)), () => gen_realisticGalaxyMap(knotBoost));
     if (t.kind === "jupiter_realistic") return getCachedMap('jupiter_realistic', gen_jupiterRealisticMap);
     if (t.kind === "pn") return getCachedMap('pn_wide', gen_planetaryNebMap);
@@ -10357,7 +10452,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       // the three planes (R\u2192ha, G\u2192oiii, B\u2192bb) render as direct R/G/B with
       // the same color path galaxy_realistic uses, and the user\u2019s color
       // saturation slider applies.
-      if (targetKindEarly === "galaxy_realistic" || targetKindEarly === "gc" || targetKindEarly === "jupiter_realistic" || targetKindEarly === "image_target") {
+      if (targetKindEarly === "galaxy_realistic" || targetKindEarly === "gc" || targetKindEarly === "jupiter_realistic" || targetKindEarly === "image_target" || targetKindEarly === "reflection_realistic") {
         let Rg = stretched_ha[idx];
         let Gg = stretched_oiii[idx];
         let Bg = stretched_bb[idx];
