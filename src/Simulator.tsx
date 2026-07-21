@@ -893,8 +893,257 @@ export default function DualSystemSimulator() {
   // VERSION — single source of truth for the on-screen version banner.
   // Bump this on every release so the latest version always shows on top.
   // ============================================================
-  const SIM_VERSION = "v987";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v987 \u2014 Reflection Nebula (Faint): more natural dust (gallery v0.6) \u2014 domain-warped asymmetric body with softer edges (no square super-Gaussian), a large-scale shape mask + ridged dark lanes, and a non-uniform IFN with real dark voids (bigger clouds, higher threshold).\n\n\u2022 v986 \u2014 Reflection Nebula (Faint) upgraded to gallery variant D v0.5: 3\u00d7 wider field (3\u2033/basepx, 64\u2032\u00d740\u2032), three widely-spread illuminators, Integrated Flux Nebula (brown galactic cirrus) filling the field at edge-of-detection, and a dust veil over the rightmost illuminator (extincted/reddened, front dust glows brown). Brighter default kept (Intensity 2.63\u00d7 / Shadows +0.47).\n\n\u2022 v985 \u2014 Reflection nebula: renamed to 'Reflection Nebula (Faint)' and brightened its default so it isn't dark on first bake \u2014 slider-neutral now equals Intensity 2.63\u00d7 + Shadows +0.47 (stretchBaseline 0.38, shadowsBaseline 1.47).\n\n\u2022 v984 \u2014 Added a procedural Reflection nebula target (gallery variant D): three illuminators with organic blue scattered-light filaments, a warm ridged dust complex + opaque dark core, and faint outer shells at the edge of detection. Direct-RGB (broadband_rgb) compose, 1\u2033/basepx (field 21.3\u2032\u00d713.3\u2032). Correctly just dims under narrowband.\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+  // v988: Parameter-effects reference guide (embedded from parameter_effects_a4_v3).
+// Rendered in a light "reference sheet" modal; all CSS scoped under .pgref.
+const PARAM_GUIDE_CSS = `
+.pgref { font-family: "Helvetica Neue", Arial, sans-serif; color: #1c2430; }
+.pgref .banner { background: #14213d; color: #ffd166; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 5px 9px; border-radius: 3px; margin: 6px 0; display: inline-block; }
+.pgref .sub { font-size: 11px; color: #5a6678; margin-bottom: 7px; line-height: 1.45; }
+.pgref .legend { font-size: 11px; color: #3a4656; margin: 4px 0 7px; }
+.pgref .keynote { font-size: 11.5px; color: #2a3646; line-height: 1.55; margin: 6px 0 10px; background: #f2f6fb; border: 1px solid #c9d8ea; border-left: 4px solid #14213d; border-radius: 3px; padding: 7px 10px; }
+.pgref .keynote b { color: #14213d; }
+.pgref table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.pgref th, .pgref td { border: 0.5px solid #c9d1dc; padding: 4px 5px; font-size: 10.5px; line-height: 1.32; vertical-align: top; text-align: left; }
+.pgref th { background: #14213d; color: #fff; letter-spacing: 0.03em; }
+.pgref .theme td { background: #e7ecf3; color: #14213d; font-weight: 700; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.pgref td.param { font-weight: 700; }
+.pgref td.param .dir { color: #5a6678; font-weight: 400; }
+.pgref .up { color: #0d7a43; font-weight: 700; }
+.pgref .dn { color: #b3261e; font-weight: 700; }
+.pgref .flat { color: #5a6678; font-weight: 700; }
+.pgref .cond { color: #9a6b00; font-weight: 700; }
+`;
+const PARAM_GUIDE_HTML = `<div class="banner">EVERY ROW READS: WHAT HAPPENS WHEN THIS PARAMETER IS INCREASED ▲</div><div class="sub">
+    <b>Per-pixel SNR</b> = how clean one pixel looks at the chosen sampling (moves with pixel size/binning).
+    <b>SNR/arcsec²</b> = signal-to-noise per fixed patch of sky — scale-free, immune to binning/f-ratio tricks.
+    <b>Detection depth</b> = the faintest extended surface brightness that clears 3σ, i.e. how much of a faint target is revealed (tracks SNR/arcsec²).
+    When per-pixel SNR and SNR/arcsec² disagree, trust SNR/arcsec².
+  </div><div class="legend">
+    <span class="up">▲</span> improves&nbsp;&nbsp; <span class="up">▲▲</span> major lever&nbsp;&nbsp;
+    <span class="dn">▼</span> degrades&nbsp;&nbsp; <span class="flat">—</span> unchanged&nbsp;&nbsp;
+    <span class="cond">◆</span> depends on regime
+  </div><div class="keynote">
+    <b>The two governing axes.</b> Photons per patch of sky — aperture × time × sky darkness × QE × filter transmission — set <b>depth</b>
+    (SNR/arcsec² and detection). The PSF — seeing ⊕ guiding ⊕ optics — together with sampling sets <b>resolution</b>.
+    Every other control (focal length, binning, drizzle, pixel size) only redistributes between per-pixel cleanliness and image scale without moving either axis.
+    <br><b>Reading the table.</b> Wherever the per-pixel column and the per-arcsec² column disagree, the per-arcsec² column tells the truth about depth —
+    per-pixel SNR can always be bought with coarser sampling. Detection depth follows SNR/arcsec² (it is the surface brightness where that ratio crosses 3σ).
+    <br><b>Display settings.</b> Stretch/intensity, shadows, whites and saturation change what you <i>see</i>, never what was <i>detected</i>;
+    a hard stretch plus the eye's integration over a feature's footprint reveals structure a strict per-arcsec² 3σ count does not include.
+  </div><table>
+    <colgroup><col style="width:13.5%"><col style="width:14.5%"><col style="width:14.5%"><col style="width:14.5%"><col style="width:14%"><col style="width:14%"><col style="width:15%"></colgroup>
+    <thead>
+      <tr>
+        <th>Parameter <span style="color:#ffd166">increased ▲</span></th>
+        <th>Per-pixel SNR</th>
+        <th>SNR / arcsec²</th>
+        <th>Detection depth</th>
+        <th>Resolving power</th>
+        <th>Stars</th>
+        <th>Why / mechanism</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="theme"><td colspan="7">Optics</td></tr>
+      <tr>
+        <td class="param">Aperture <span class="dir">(same f-ratio)</span></td>
+        <td><span class="up">▲▲</span> more photons on every pixel</td>
+        <td><span class="up">▲▲</span> rises ∝ D — real gain</td>
+        <td><span class="up">▲▲</span> faint halos &amp; outskirts emerge</td>
+        <td><span class="up">▲</span> Airy disk shrinks ∝ 1/D</td>
+        <td><span class="up">▲</span> reaches ~1.2 mag fainter per 3× D</td>
+        <td>The one true depth lever besides time: more photons collected from every patch of sky.</td>
+      </tr>
+      <tr>
+        <td class="param">Focal length <span class="dir">(same aperture → slower f/)</span></td>
+        <td><span class="dn">▼</span> same light spread over more pixels</td>
+        <td><span class="flat">—</span> photons per sky patch unchanged</td>
+        <td><span class="flat">—</span> nothing gained, nothing lost</td>
+        <td><span class="cond">◆</span> finer sampling pays only if seeing permits</td>
+        <td><span class="dn">▼</span> dimmer per pixel; same detectability</td>
+        <td>The f-ratio myth: f/ changes image scale, not photon count. FOV shrinks; per-pixel numbers drop cosmetically.</td>
+      </tr>
+      <tr>
+        <td class="param">Central obstruction</td>
+        <td><span class="dn">▼</span> small light loss (∝ area blocked)</td>
+        <td><span class="dn">▼</span> same small loss</td>
+        <td><span class="dn">▼</span> slightly shallower</td>
+        <td><span class="dn">▼</span> mid-frequency contrast (MTF) drops</td>
+        <td><span class="cond">◆</span> more light shifted into diffraction rings</td>
+        <td>Hurts fine planetary/lunar contrast most; deep-sky barely notices ≤ 30% obstruction.</td>
+      </tr>
+
+      <tr class="theme"><td colspan="7">Acquisition</td></tr>
+      <tr>
+        <td class="param">Total integration time</td>
+        <td><span class="up">▲</span> grows ∝ √t</td>
+        <td><span class="up">▲▲</span> grows ∝ √t — genuine depth</td>
+        <td><span class="up">▲▲</span> each doubling digs ~0.4 mag deeper</td>
+        <td><span class="flat">—</span> PSF unchanged</td>
+        <td><span class="up">▲</span> ever fainter stars surface</td>
+        <td>Cannot be faked: binning or smoothing shorter data never matches it — longer data can always be binned too.</td>
+      </tr>
+      <tr>
+        <td class="param">Sub-exposure length <span class="dir">(same total time)</span></td>
+        <td><span class="cond">◆</span> gains only while read noise matters</td>
+        <td><span class="cond">◆</span> same condition</td>
+        <td><span class="cond">◆</span> small gain in read-limited regimes</td>
+        <td><span class="flat">—</span> no PSF change</td>
+        <td><span class="dn">▼</span> bright cores saturate sooner</td>
+        <td>Once sky noise per sub ≫ read noise, longer subs buy nothing. Low-RN CMOS under broadband sky: short subs are nearly free.</td>
+      </tr>
+      <tr>
+        <td class="param">Binning</td>
+        <td><span class="up">▲</span> rises ∝ bin factor</td>
+        <td><span class="flat">—</span> exactly unchanged</td>
+        <td><span class="flat">—</span> no new photons collected</td>
+        <td><span class="dn">▼</span> falls ∝ bin factor</td>
+        <td><span class="dn">▼</span> blockier, coarser profiles</td>
+        <td>A pure trade of resolution for per-pixel SNR at fixed photons. (Tiny real dividend only for hardware binning when read-limited.)</td>
+      </tr>
+      <tr>
+        <td class="param">Drizzle</td>
+        <td><span class="dn">▼</span> light divided onto finer grid</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="cond">◆</span> recovers detail only if undersampled + dithered</td>
+        <td><span class="up">▲</span> rounder profiles when undersampled</td>
+        <td>The inverse of binning on the display grid; adds no photons, so depth is untouched.</td>
+      </tr>
+
+
+    </tbody>
+  </table><div style="height:10px"></div><div class="banner">EVERY ROW READS: WHAT HAPPENS WHEN THIS PARAMETER IS INCREASED ▲</div><table>
+    <colgroup><col style="width:13.5%"><col style="width:14.5%"><col style="width:14.5%"><col style="width:14.5%"><col style="width:14%"><col style="width:14%"><col style="width:15%"></colgroup>
+    <thead>
+      <tr>
+        <th>Parameter <span style="color:#ffd166">increased ▲</span></th>
+        <th>Per-pixel SNR</th>
+        <th>SNR / arcsec²</th>
+        <th>Detection depth</th>
+        <th>Resolving power</th>
+        <th>Stars</th>
+        <th>Why / mechanism</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="theme"><td colspan="7">Sky &amp; conditions</td></tr>
+      <tr>
+        <td class="param">Sky darkness <span class="dir">(SQM ↑)</span></td>
+        <td><span class="up">▲▲</span> sky noise floor collapses</td>
+        <td><span class="up">▲▲</span> biggest environmental lever</td>
+        <td><span class="up">▲▲</span> ~2.5× less sky flux per SQM mag</td>
+        <td><span class="flat">—</span> PSF unchanged</td>
+        <td><span class="up">▲</span> fainter stars, truer color</td>
+        <td>Sky shot noise dominates the background floor for broadband imaging — dark sites beat almost any gear upgrade.</td>
+      </tr>
+      <tr>
+        <td class="param">Seeing <span class="dir">(worse)</span></td>
+        <td><span class="dn">▼</span> peaks flatten on stars/detail</td>
+        <td><span class="flat">—</span> extended SB conserved, just blurred</td>
+        <td><span class="flat">—</span> faint halo detectability survives</td>
+        <td><span class="dn">▼▼</span> PSF balloons — the resolution killer</td>
+        <td><span class="dn">▼</span> bloated; point-source m<sub>lim</sub> shallower</td>
+        <td>Seeing redistributes photons, it doesn't remove them: extended-source depth is seeing-independent; stars and fine detail pay the price.</td>
+      </tr>
+      <tr>
+        <td class="param">Guiding RMS <span class="dir">(worse)</span></td>
+        <td><span class="dn">▼</span> like extra seeing</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="dn">▼</span> adds in quadrature to FWHM</td>
+        <td><span class="dn">▼</span> elongated if error is directional</td>
+        <td>2.355 × RMS joins seeing in quadrature — random error mimics seeing; periodic error draws trails.</td>
+      </tr>
+      <tr>
+        <td class="param">Ambient temperature</td>
+        <td><span class="dn">▼</span> via dark-current noise</td>
+        <td><span class="dn">▼</span> in dark-limited regimes</td>
+        <td><span class="dn">▼</span> narrowband/long subs suffer first</td>
+        <td><span class="flat">—</span> no optical effect</td>
+        <td><span class="cond">◆</span> hot pixels multiply</td>
+        <td>Dark current doubles every ~6 °C. Under bright broadband sky it's buried; under narrowband or dark sky it surfaces.</td>
+      </tr>
+      <tr class="theme"><td colspan="7">Filters</td></tr>
+      <tr>
+        <td class="param">Filter narrowness — on <b>emission</b> targets <span class="dir">(UV/IR → duo → NB)</span></td>
+        <td><span class="up">▲</span> in Hα/OIII regions</td>
+        <td><span class="up">▲▲</span> line signal kept, sky crushed 10–100×</td>
+        <td><span class="up">▲▲</span> faint line structure surfaces</td>
+        <td><span class="flat">—</span> PSF unchanged</td>
+        <td><span class="dn">▼</span> broadband starlight strongly dimmed</td>
+        <td>Emulates a far darker sky at the emission wavelengths only — the whole point of narrowband.</td>
+      </tr>
+      <tr>
+        <td class="param">Filter narrowness — on <b>broadband</b> targets <span class="dir">(galaxies, reflection, clusters)</span></td>
+        <td><span class="dn">▼▼</span> continuum blocked with the sky</td>
+        <td><span class="dn">▼▼</span> net loss everywhere</td>
+        <td><span class="dn">▼▼</span> object fades with the background</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="dn">▼</span> dimmed like the target</td>
+        <td>Continuum objects have no emission line to pass — everything just darkens (only Hα HII knots in galaxies survive).</td>
+      </tr>
+
+      <tr class="theme"><td colspan="7">Sensor characteristics</td></tr>
+      <tr>
+        <td class="param">Pixel size <span class="dir">(same optics)</span></td>
+        <td><span class="up">▲</span> each pixel gathers more sky</td>
+        <td><span class="flat">—</span> unchanged per sky patch</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="dn">▼</span> coarser sampling; undersampling risk</td>
+        <td><span class="dn">▼</span> blocky if undersampled</td>
+        <td>Equivalent to binning at fixed optics. Sweet spot: pixel ≈ FWHM/2–3 (sample the seeing, waste nothing).</td>
+      </tr>
+      <tr>
+        <td class="param">Quantum efficiency (QE)</td>
+        <td><span class="up">▲</span> ∝ √QE when sky-limited</td>
+        <td><span class="up">▲</span> same gain — genuine</td>
+        <td><span class="up">▲</span> like free aperture area</td>
+        <td><span class="flat">—</span> no optical effect</td>
+        <td><span class="up">▲</span> everything brighter</td>
+        <td>A pure multiplier on signal AND sky — one of the few no-trade-off sensor wins.</td>
+      </tr>
+      <tr>
+        <td class="param">Read noise <span class="dir">(lower ▼ is better)</span></td>
+        <td><span class="cond">◆</span> visible in read-limited frames</td>
+        <td><span class="cond">◆</span> same regimes</td>
+        <td><span class="cond">◆</span> deeper when subs are short / sky dark</td>
+        <td><span class="flat">—</span> no effect</td>
+        <td><span class="flat">—</span> negligible on bright stars</td>
+        <td>Sets the minimum useful sub length: with 1–3 e⁻ CMOS, sky noise dominates quickly and read noise nearly vanishes from the budget.</td>
+      </tr>
+      <tr>
+        <td class="param">Dark current <span class="dir">(lower ▼ is better — cooling)</span></td>
+        <td><span class="cond">◆</span> matters in dark-limited frames</td>
+        <td><span class="cond">◆</span> same regimes</td>
+        <td><span class="cond">◆</span> narrowband/warm nights gain most</td>
+        <td><span class="flat">—</span> no effect</td>
+        <td><span class="up">▲</span> far fewer hot pixels</td>
+        <td>Same logic as read noise but grows with exposure and temperature (doubles ~6 °C) — cooling buys margin exactly where subs are long.</td>
+      </tr>
+      <tr>
+        <td class="param">Full-well capacity</td>
+        <td><span class="flat">—</span> noise floor untouched</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="up">▲</span> cores hold color, resist bloat/clipping</td>
+        <td>Pure dynamic-range headroom: how bright a star gets before clipping. Small pixels ⇒ small wells ⇒ earlier saturation.</td>
+      </tr>
+      <tr>
+        <td class="param">Sensor format <span class="dir">(physical size)</span></td>
+        <td><span class="flat">—</span> per-pixel physics identical</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="flat">—</span> unchanged</td>
+        <td><span class="flat">—</span> just more of them in frame</td>
+        <td>Buys field of view only — more sky per frame, zero change to any per-arcsec² quantity of a given target.</td>
+      </tr>
+    </tbody>
+  </table>`;
+
+const SIM_VERSION = "v988";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide (per-parameter impact on per-pixel SNR, SNR/arcsec\u00b2, detection depth, resolution, stars) as a light reference-sheet modal, opened by a prominent gold PARAMETER EFFECTS GUIDE button in the header.\n\n\u2022 v987 \u2014 Reflection Nebula (Faint): more natural dust (gallery v0.6) \u2014 domain-warped asymmetric body with softer edges (no square super-Gaussian), a large-scale shape mask + ridged dark lanes, and a non-uniform IFN with real dark voids (bigger clouds, higher threshold).\n\n\u2022 v986 \u2014 Reflection Nebula (Faint) upgraded to gallery variant D v0.5: 3\u00d7 wider field (3\u2033/basepx, 64\u2032\u00d740\u2032), three widely-spread illuminators, Integrated Flux Nebula (brown galactic cirrus) filling the field at edge-of-detection, and a dust veil over the rightmost illuminator (extincted/reddened, front dust glows brown). Brighter default kept (Intensity 2.63\u00d7 / Shadows +0.47).\n\n\u2022 v985 \u2014 Reflection nebula: renamed to 'Reflection Nebula (Faint)' and brightened its default so it isn't dark on first bake \u2014 slider-neutral now equals Intensity 2.63\u00d7 + Shadows +0.47 (stretchBaseline 0.38, shadowsBaseline 1.47).\n\n\u2022 v984 \u2014 Added a procedural Reflection nebula target (gallery variant D): three illuminators with organic blue scattered-light filaments, a warm ridged dust complex + opaque dark core, and faint outer shells at the edge of detection. Direct-RGB (broadband_rgb) compose, 1\u2033/basepx (field 21.3\u2032\u00d713.3\u2032). Correctly just dims under narrowband.\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -904,7 +1153,7 @@ export default function DualSystemSimulator() {
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v987</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v988</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -4857,6 +5106,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   const [showDrizzleViewHelp, setShowDrizzleViewHelp] = useState(false);
   const [showHudHelp, setShowHudHelp] = useState(false); // v926: perf-HUD explainer popover
   const [showDetHelp, setShowDetHelp] = useState(false); // v962: detection-fraction explainer popover
+  const [showParamGuide, setShowParamGuide] = useState(false); // v988: parameter-effects reference modal
   const [bpDraft, setBpDraft] = useState(0); // v971: controlled black-point slider (fixes tap-to-jump)
   useEffect(() => { const _u = userUploadCacheRef.current[target]; setBpDraft((_u && _u.bakeBlackPoint) || 0); }, [target, userUploadEpoch]);
   // v237: Analysis-table help popover toggle (mirrors the realism pattern).
@@ -12676,6 +12926,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 {SIM_VERSION}
               </span>
               <a href="https://github.com/StevanKlaas/Dual-System-Simulator/blob/main/src/Simulator.tsx" target="_blank" rel="noopener noreferrer" style={{ color: "#5fb3a1", fontSize: 10, fontFamily: "JetBrains Mono, monospace", letterSpacing: "0.05em", textDecoration: "none", borderBottom: "1px solid rgba(95, 179, 161, 0.4)" }}>Download Source Code File: Simulator.tsx</a>
+              <button onClick={() => setShowParamGuide(true)} style={{ background: "rgba(212, 164, 55, 0.14)", color: "#d4a437", border: "1px solid #d4a437", borderRadius: 3, padding: "4px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", cursor: "pointer" }}>PARAMETER EFFECTS GUIDE</button>
               {/* v700 Phase B.1: GPU status pill. Two slots: device init and
                   the PN compute pipeline. When both are green the cam-scale
                   source-sampling JS loop is replaced by a WGSL dispatch for
@@ -15993,6 +16244,19 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             <div dangerouslySetInnerHTML={{ __html: DOC_HTML }} />
           </div>
         </div>
+      )}
+      {showParamGuide && (
+        <>
+          <div onClick={() => setShowParamGuide(false)} style={{ position: "fixed", inset: 0, zIndex: 1999, background: "rgba(0, 0, 0, 0.55)" }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 2000, width: "min(980px, calc(100vw - 24px))", maxHeight: "90vh", overflowY: "auto", background: "#ffffff", borderRadius: 5, border: "1px solid #d4a437", boxShadow: "0 12px 48px rgba(0, 0, 0, 0.6)", padding: "14px 18px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <span style={{ fontFamily: "Helvetica, Arial, sans-serif", fontSize: 16, fontWeight: 700, color: "#14213d", letterSpacing: "0.03em" }}>Astroimaging — What Each Parameter Does</span>
+              <button onClick={() => setShowParamGuide(false)} style={{ background: "transparent", border: "none", color: "#5a6678", fontSize: 24, cursor: "pointer", lineHeight: 1, padding: "0 4px" }}>×</button>
+            </div>
+            <style>{PARAM_GUIDE_CSS}</style>
+            <div className="pgref" dangerouslySetInnerHTML={{ __html: PARAM_GUIDE_HTML }} />
+          </div>
+        </>
       )}
     </div>
   );
