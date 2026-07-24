@@ -1142,8 +1142,154 @@ const PARAM_GUIDE_HTML = `<div class="banner">EVERY ROW READS: WHAT HAPPENS WHEN
     </tbody>
   </table>`;
 
-const SIM_VERSION = "v989";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v989 \u2014 Two fixes from external review. (1) System B default is now a real instrument: Celestron Origin 152 mm f/2.2 with its 41% central obstruction \u2014 previously 0%, which is unbuildable at that f-ratio and overstated both collecting area and MTF. (2) Sampling verdict re-centred on the Q = FWHM/1.6 target: bands are now 1.4\u20132.2 'well sampled' (was 1.6\u20134.0, which treated the ideal as the floor and green-lit 2.5\u00d7 oversampling), and each system now shows its target \u2033/px beside the actual.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide (per-parameter impact on per-pixel SNR, SNR/arcsec\u00b2, detection depth, resolution, stars) as a light reference-sheet modal, opened by a prominent gold PARAMETER EFFECTS GUIDE button in the header.\n\n\u2022 v987 \u2014 Reflection Nebula (Faint): more natural dust (gallery v0.6) \u2014 domain-warped asymmetric body with softer edges (no square super-Gaussian), a large-scale shape mask + ridged dark lanes, and a non-uniform IFN with real dark voids (bigger clouds, higher threshold).\n\n\u2022 v986 \u2014 Reflection Nebula (Faint) upgraded to gallery variant D v0.5: 3\u00d7 wider field (3\u2033/basepx, 64\u2032\u00d740\u2032), three widely-spread illuminators, Integrated Flux Nebula (brown galactic cirrus) filling the field at edge-of-detection, and a dust veil over the rightmost illuminator (extincted/reddened, front dust glows brown). Brighter default kept (Intensity 2.63\u00d7 / Shadows +0.47).\n\n\u2022 v985 \u2014 Reflection nebula: renamed to 'Reflection Nebula (Faint)' and brightened its default so it isn't dark on first bake \u2014 slider-neutral now equals Intensity 2.63\u00d7 + Shadows +0.47 (stretchBaseline 0.38, shadowsBaseline 1.47).\n\n\u2022 v984 \u2014 Added a procedural Reflection nebula target (gallery variant D): three illuminators with organic blue scattered-light filaments, a warm ridged dust complex + opaque dark core, and faint outer shells at the edge of detection. Direct-RGB (broadband_rgb) compose, 1\u2033/basepx (field 21.3\u2032\u00d713.3\u2032). Correctly just dims under narrowband.\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+// v990: Gaussian-equivalent FWHM taken from the MTF = 1/2 crossing of the PRODUCT
+// of the component transfer functions (annular diffraction OTF x seeing Gaussian x
+// guiding Gaussian x optional pixel sinc). Replaces the quadrature sum of
+// per-component FWHMs, which is exact only for Gaussians: the diffraction OTF and
+// the pixel sinc are not Gaussian, so quadrature systematically under-reports the
+// delivered blur. Also retires the empirical 2.3*eps*airy obstruction term -- the
+// annular OTF already contains the obstruction, with no calibration constant.
+// For a Gaussian, MTF(nu) = exp(-2 pi^2 sigma^2 nu^2) = 1/2 at nu_half, giving
+// FWHM = 2.3548 sigma = 0.441258 / nu_half.
+// ============================================================================
+// v991: EXACT PSF FWHM  (replaces both the quadrature sum and the v990 MTF-1/2
+// crossing).  This block is the single source of truth for PSF width; read it
+// before touching anything that consumes psf_fwhm_arcsec.
+//
+// THE PROBLEM.  The system PSF is the convolution of four contributors:
+// atmospheric seeing (Gaussian), mount jitter (Gaussian), the aperture's
+// diffraction pattern (Airy, or annular when obstructed), and -- for the
+// "delivered" figure -- the pixel's box-car footprint.  Only the two Gaussians
+// convolve into another Gaussian.  Any single-number "FWHM" for the result is
+// therefore an approximation unless the actual convolved profile is measured.
+//
+// TWO APPROXIMATIONS WE REJECTED, and why (errors measured against the exact
+// profile computed below, across apertures 30-280 mm and seeing 1-3"):
+//
+//   (a) QUADRATURE of per-component FWHMs, sqrt(sum of squares).
+//       Exact for Gaussians only.  Unobstructed error -1.6% .. +2.9% -- good.
+//       But the central obstruction has no correct quadrature term: solving for
+//       k in FWHM_extra = k*eps*FWHM_airy that reproduces the true profile gives
+//       k = 1.2 .. 5.3 depending on how far the Gaussians dominate diffraction.
+//       No constant works; the legacy k = 2.3 landed between -3.5% and +8%.
+//
+//   (b) The MTF = 1/2 CROSSING of the product of the component transfer
+//       functions (v990).  Tempting because it is exact for Gaussians and uses
+//       the same O'Neill annular OTF the MTF chart plots -- but it measures
+//       CONTRAST RESOLUTION, not core width.  The broad wings of an Airy pattern
+//       depress mid-frequency contrast far more than a Gaussian of equal core
+//       width, so the product crosses 1/2 at a lower frequency and the implied
+//       "FWHM" runs ~+10% wide.  A real quantity, but not FWHM.
+//
+// WHAT WE DO INSTEAD.  Compute the actual radial PSF and measure its half
+// maximum.  For a circularly symmetric system the PSF is the inverse Hankel
+// transform of the OTF:
+//
+//     PSF(r) = integral_0^nu_max  OTF(nu) * J0(2*pi*nu*r) * 2*pi*nu  d(nu)
+//
+// then FWHM = 2*r_half where PSF(r_half) = PSF(0)/2.  OTF(nu) is exactly the
+// product mtfProductAt() already builds (annular diffraction x seeing x guiding
+// x optional pixel sinc), so the PSF is consistent BY CONSTRUCTION with the MTF
+// curve the analysis chart draws -- which was the real goal of v990.
+//
+// COST.  J0 uses the Abramowitz & Stegun 9.4.1/9.4.3 polynomials (error < 2e-8),
+// so one PSF sample is ~800 cheap evaluations and a full FWHM solve is ~40
+// bisection steps.  Sub-millisecond, and it runs only when a system parameter
+// changes (deriveSystem is memoised), never per frame.
+//
+// ACCURACY.  Reproduces the reference profile to ~0.1%; a pure-Gaussian input
+// returns the input FWHM exactly.
+// ============================================================================
+function besselJ0(x) {
+  const ax = Math.abs(x);
+  if (ax < 3.0) {
+    const y = (x / 3.0) * (x / 3.0);
+    return 1.0 + y * (-2.2499997 + y * (1.2656208 + y * (-0.3163866
+           + y * (0.0444479 + y * (-0.0039444 + y * 0.0002100)))));
+  }
+  const z = 3.0 / ax;
+  const f0 = 0.79788456 + z * (-0.00000077 + z * (-0.00552740 + z * (-0.00009512
+           + z * (0.00137237 + z * (-0.00072805 + z * 0.00014476)))));
+  const th = ax - 0.78539816 + z * (-0.04166397 + z * (-0.00003954 + z * (0.00262573
+           + z * (-0.00054125 + z * (-0.00029333 + z * 0.00013558)))));
+  return Math.sqrt(1.0 / ax) * f0 * Math.cos(th);
+}
+// Radial PSF value (unnormalised) at radius r arcsec.
+function psfRadial(r, aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_scale) {
+  const nu_c = _nuCutoff(aperture_mm);
+  // Integrate only where the OTF is non-negligible: the Gaussian terms cut off
+  // long before nu_c for any real aperture, and truncating there keeps the grid
+  // fine enough to resolve the rolloff on large apertures.
+  const sg = (seeing_arcsec || 0) / 2.355, gg = guide_rms_arcsec || 0;
+  const sigma_tot = Math.sqrt(sg * sg + gg * gg);
+  const nu_max = sigma_tot > 1e-6 ? Math.min(nu_c, 1.0 / sigma_tot) : nu_c;
+  const N = 800, d = nu_max / N;
+  let sum = 0;
+  for (let i = 0; i < N; i++) {
+    const nu = (i + 0.5) * d;
+    sum += mtfProductAt(nu, aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_scale)
+         * besselJ0(2 * Math.PI * nu * r) * nu * d;
+  }
+  return sum;
+}
+// Exact FWHM of the convolved PSF, in arcsec.
+function truePsfFwhm(aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_scale) {
+  const p0 = psfRadial(0, aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_scale);
+  if (!(p0 > 0)) return 0;
+  const half = p0 / 2;
+  const airy = 1.029 * (550e-9 / (aperture_mm / 1000)) * 206265;
+  const guess = Math.sqrt((seeing_arcsec || 0) ** 2 + airy * airy
+              + (2.355 * (guide_rms_arcsec || 0)) ** 2 + (pixel_scale || 0) ** 2);
+  let lo = 0, hi = Math.max(1, guess * 4);
+  for (let i = 0; i < 40; i++) {
+    const m = 0.5 * (lo + hi);
+    if (psfRadial(m, aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_scale) > half) lo = m;
+    else hi = m;
+  }
+  return lo + hi;   // 2 * r_half
+}
+
+const FWHM_FROM_NU_HALF = 2.3548 * Math.sqrt(Math.LN2 / 2) / Math.PI;
+function _nuCutoff(aperture_mm) { return (aperture_mm * 1e-3) / (550e-9) / 206265; }
+function mtfProductAt(nu, aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_scale) {
+  const nu_c = _nuCutoff(aperture_mm), x = nu / nu_c;
+  const unobs = (u) => (u >= 1 ? 0 : (2 / Math.PI) * (Math.acos(u) - u * Math.sqrt(1 - u * u)));
+  const e = Math.min(0.5, Math.max(0, eps || 0));
+  let mtf_diff;
+  if (e < 0.001) mtf_diff = unobs(x);
+  else if (x >= 1) mtf_diff = 0;
+  else {
+    const e2 = e * e, r1 = (1 - e) / 2, r3 = (1 + e) / 2, m_out = unobs(x);
+    if (x <= r1) mtf_diff = Math.max(0, (m_out - 2 * e2 + e2 * unobs(x / e)) / (1 - e2));
+    else if (x >= r3) mtf_diff = m_out / (1 - e2);
+    else {
+      const a = (unobs(r1) - 2 * e2 + e2 * unobs(r1 / e)) / (1 - e2);
+      const b = unobs(r3) / (1 - e2);
+      mtf_diff = Math.max(0, a + (b - a) * (x - r1) / (r3 - r1));
+    }
+  }
+  const sg = (seeing_arcsec || 0) / 2.355, gg = guide_rms_arcsec || 0;
+  const k = 2 * Math.PI * Math.PI * nu * nu;
+  let m = mtf_diff * Math.exp(-k * sg * sg) * Math.exp(-k * gg * gg);
+  if (pixel_scale > 0) {
+    const a = Math.PI * nu * pixel_scale;
+    m *= (a < 1e-9 ? 1 : Math.max(0, Math.sin(a) / a));
+  }
+  return m;
+}
+function fwhmFromMTF(aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_scale) {
+  const nu_c = _nuCutoff(aperture_mm);
+  let lo = 1e-9, hi = nu_c;   // MTF(0)=1 and MTF(nu_c)=0, so a 1/2 crossing always exists
+  for (let i = 0; i < 60; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (mtfProductAt(mid, aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_scale) > 0.5) lo = mid; else hi = mid;
+  }
+  const nu_half = 0.5 * (lo + hi);
+  return nu_half > 0 ? FWHM_FROM_NU_HALF / nu_half : 0;
+}
+
+const SIM_VERSION = "v991";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v991 \u2014 PSF FWHM is now measured EXACTLY on the convolved profile: the OTF product is inverse-Hankel-transformed to the radial PSF and the half-maximum solved directly. Corrects v990, whose MTF=\u00bd crossing ran ~10% wide (it measures contrast resolution, not core width), and removes the last calibration constant \u2014 the obstruction never had a valid one (the k matching the true profile ranges 1.2\u20135.3). Verified to ~0.1%; pure-Gaussian inputs return exactly. MTF chart and contrast-stripe table are unaffected \u2014 they were always computed from computeMTF, independent of the PSF FWHM.\n\n\u2022 v990 (FWHM method superseded) \u2014 PSF FWHM read off the MTF = \u00bd crossing of the product of the component transfer functions (annular diffraction OTF \u00d7 seeing \u00d7 guiding), instead of a quadrature sum of Gaussian-equivalent FWHMs \u2014 exact for the non-Gaussian contributors, where quadrature under-reported. The empirical 2.3\u00b7\u03b5\u00b7airy obstruction term is retired (the annular OTF contains the obstruction), replaced by a derived 'obstruction cost' readout. Added a delivered FWHM including the pixel sinc. Stale 1.6\u20134.0 sampling text corrected across docs, analysis-table footnotes and legend.\n\n\u2022 v989 \u2014 Two fixes from external review. (1) System B default is now a real instrument: Celestron Origin 152 mm f/2.2 with its 41% central obstruction \u2014 previously 0%, which is unbuildable at that f-ratio and overstated both collecting area and MTF. (2) Sampling verdict re-centred on the Q = FWHM/1.6 target: bands are now 1.4\u20132.2 'well sampled' (was 1.6\u20134.0, which treated the ideal as the floor and green-lit 2.5\u00d7 oversampling), and each system now shows its target \u2033/px beside the actual.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide (per-parameter impact on per-pixel SNR, SNR/arcsec\u00b2, detection depth, resolution, stars) as a light reference-sheet modal, opened by a prominent gold PARAMETER EFFECTS GUIDE button in the header.\n\n\u2022 v987 \u2014 Reflection Nebula (Faint): more natural dust (gallery v0.6) \u2014 domain-warped asymmetric body with softer edges (no square super-Gaussian), a large-scale shape mask + ridged dark lanes, and a non-uniform IFN with real dark voids (bigger clouds, higher threshold).\n\n\u2022 v986 \u2014 Reflection Nebula (Faint) upgraded to gallery variant D v0.5: 3\u00d7 wider field (3\u2033/basepx, 64\u2032\u00d740\u2032), three widely-spread illuminators, Integrated Flux Nebula (brown galactic cirrus) filling the field at edge-of-detection, and a dust veil over the rightmost illuminator (extincted/reddened, front dust glows brown). Brighter default kept (Intensity 2.63\u00d7 / Shadows +0.47).\n\n\u2022 v985 \u2014 Reflection nebula: renamed to 'Reflection Nebula (Faint)' and brightened its default so it isn't dark on first bake \u2014 slider-neutral now equals Intensity 2.63\u00d7 + Shadows +0.47 (stretchBaseline 0.38, shadowsBaseline 1.47).\n\n\u2022 v984 \u2014 Added a procedural Reflection nebula target (gallery variant D): three illuminators with organic blue scattered-light filaments, a warm ridged dust complex + opaque dark core, and faint outer shells at the edge of detection. Direct-RGB (broadband_rgb) compose, 1\u2033/basepx (field 21.3\u2032\u00d713.3\u2032). Correctly just dims under narrowband.\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -1153,7 +1299,7 @@ const SIM_VERSION = "v989";
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v989</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v991</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1211,7 +1357,8 @@ const SIM_VERSION = "v989";
 <p class="body">Below the systems panels, a set of indicator blocks presents the quantitative results the visual comparison alone cannot convey.</p>
 <p class="body"><b>SNR result.</b> Per-pixel SNR at three brightness probes of the target (faint = 5 % of peak, medium = 30 %, bright = 100 %). For each probe, both systems are reported side by side with a per-channel breakdown for narrowband-aware comparisons, plus the electron signal and total noise σ that produced each ratio. A selector chooses which probe drives the "dominant" label so the comparison can reflect the user's actual visual priority.</p>
 <p class="body"><b>Noise breakdown.</b> Per-pixel noise contributions in electrons, broken down by source: shot noise (signal Poisson), sky shot, dark shot, read, fixed-pattern. The breakdown exposes which limit is binding — high-read-noise + dark-sky and low-read-noise + bright-sky regimes drive very different optimal strategies.</p>
-<p class="body"><b>PSF breakdown.</b> The per-system FWHM decomposition — seeing, Airy diffraction, guide-RMS Gaussian contribution, plus an obstruction-equivalent term when ε &gt; 0 — combined in quadrature to give the optical PSF, with the pixel-sampling term added separately in quadrature for the image FWHM a star-detection routine would measure. A sampling verdict (undersampled / well sampled / oversampled) compares the two; the well-sampled cue is green.</p>
+<p class="body"><b>Exact PSF FWHM (v991).</b> The total is measured on the actual convolved profile rather than approximated: the OTF product (annular diffraction × seeing × guiding, plus the pixel box-car for the delivered figure) is inverse-Hankel-transformed to the radial PSF, <code>PSF(r) = ∫ OTF(ν)·J₀(2πνr)·2πν dν</code>, and the half-maximum radius solved by bisection. This replaces two approximations. <i>Quadrature</i> of per-component FWHMs is exact only for Gaussians and has no valid obstruction term — the coefficient needed to match the true profile ranges 1.2–5.3 depending on how far the Gaussians dominate diffraction, so the legacy flat 2.3 was between −3.5 % and +8 %. The <i>MTF = ½ crossing</i> of the same product runs systematically ~10 % wide, because it measures contrast resolution rather than core width: the broad wings of an Airy pattern depress mid-frequency contrast far more than a Gaussian of equal core width does. Because the PSF is derived from the same OTF the MTF chart plots, the two are now consistent by construction. Bessel J₀ uses the Abramowitz &amp; Stegun polynomials, so a full solve is sub-millisecond and runs only when a system parameter changes.</p>
+<p class="body"><b>PSF breakdown.</b> The per-system blur budget lists each contributor as a Gaussian-equivalent FWHM — seeing, diffraction (annular OTF, obstruction included), guide-RMS, and the pixel term — plus the derived cost of the central obstruction. Since v990 the <i>total</i> is not their quadrature sum: it is read off the MTF = ½ crossing of the product of the component transfer functions, which is exact for the non-Gaussian contributors (diffraction, pixel sinc) where quadrature under-reports. The sampling verdict compares the optical FWHM to the pixel scale; the well-sampled cue is green.</p>
 <p class="body"><b>Modulation transfer function.</b> The PSF's Fourier transform, plotted as resolved contrast versus spatial frequency in cycles/arcsec. Each system contributes two curves by default: the <b>optical MTF</b> (aperture × seeing × guide, solid) and the <b>pixel-sampled MTF</b> (optical × sinc(π·ν·Δ), dashed — the sinc coming from each pixel integrating the cosine across its width). The gap between them is the sampling penalty for the chosen pixel scale. When a system has drizzle &gt; 1, a third dotted curve appears: the <b>per-frame pixel MTF</b> against the binned-only (un-reconstructed) pixel scale, with the dashed curve reframed as the <i>drizzle ceiling</i>. The system whose curve stays higher at high frequency resolves finer detail.</p>
 <p class="body"><b>Stripe-swatch table.</b> Below the curve, a per-system table translates the abstract MTF into a visible test pattern, with a toggle between two orientations. <b>Contrast → resolution</b> (the default): columns are fixed target-contrast levels (80 %, 50 %, 30 %, 20 %, 10 %, 5 %) and each cell shows the period (arcsec/cycle) at which the relevant MTF crosses that contrast. <b>Resolution → contrast</b> (the reverse table): columns are six fixed arcsec levels — the finest set to where the better system's optical PSF reaches 5 % contrast, then rounded and stepped in +1″ increments, laid out coarse-to-fine left to right — and each cell shows the contrast that survives at that period. Either way, each system has two rows: <i>optical resolved</i> (smooth cosine — what the optics deliver onto the focal plane, ignoring the sensor grid) and <i>pixel resolved</i> (the same period sampled once per sky-pixel and painted as flat blocks — what the sensor records as raw readout). Both rows render at the same labelled Michelson contrast, so visible differences between them are pure consequences of the discrete pixel sampling. When drizzle &gt; 1, the pixel row's label is suffixed "(ceiling)" and a third <i>per-frame</i> row appears using the binned-only pixel scale. See §2.9 for what each row means and §3.4 for the maths.</p>
 <p class="body"><b>Analysis table.</b> A two-column (image space / object space) per-system summary of plate scale, diffraction resolution limit, spatial cutoff frequency, Airy/seeing/total FWHM, image FWHM with sampling, and field of view. The layout mirrors Russell Croman's MTF Analyzer. Cells colour-code under/over-sampling (green well-sampled, red undersampled, gold oversampled); the Image/Object sub-headers are neutral grey. When any system uses drizzle, an additional italic row shows the per-frame and ceiling resolutions side by side.</p>
@@ -1303,7 +1450,7 @@ const SIM_VERSION = "v989";
   <dt>Binning</dt><dd>Combine pixels (e.g. 2×2) for higher SNR per output pixel at coarser resolution. Multiplies sky, dark, and target rates by b²; effective pixel = pixel · b.</dd>
   <dt>Drizzle</dt><dd>Sub-pixel-dither super-resolution stacking; recovers detail finer than the native pixel grid at the cost of (1/D<sub>z</sub>) per-pixel SNR penalty and larger output. Effective pixel = pixel / D<sub>z</sub>.</dd>
   <dt>PSF FWHM (derived, arcsec)</dt><dd>√(FWHM²<sub>seeing</sub> + FWHM²<sub>Airy</sub> + FWHM²<sub>guide</sub> + FWHM²<sub>obs</sub>) with FWHM<sub>guide</sub> = 2.355·σ<sub>guide</sub> and FWHM<sub>obs</sub> = 2.3·ε·FWHM<sub>Airy</sub> (obstruction blur, zero for unobstructed). The single number that summarizes "how big a star will look."</dd>
-  <dt>Sampling ratio (derived)</dt><dd>PSF FWHM / pixel scale, in pixels per FWHM. The verdict band: <b>undersampled</b> if &lt; 1.6 (loses optical detail to coarse pixels), <b>oversampled</b> if &gt; 4.0 (wastes SNR on empty resolution), <b>well sampled</b> in between. The Nyquist sweet spot sits around 2.5–3. The same band and colours (red / green / gold) are used in every verdict readout app-wide.</dd>
+  <dt>Sampling ratio (derived)</dt><dd>PSF FWHM / pixel scale, in pixels per FWHM. The verdict band is centred on the target Q = FWHM/1.6: <b>undersampled</b> if &lt; 1.4 (loses optical detail to coarse pixels), <b>oversampled</b> if &gt; 2.2 (spends SNR on frequencies the MTF has already destroyed), <b>well sampled</b> in between. Each system also displays its ideal ″/px (= FWHM/1.6) beside the actual. The same band and colours (red / green / gold) are used in every verdict readout app-wide.</dd>
   <dt>Operating temp (derived, °C)</dt><dd>Ambient + cooling delta. The silicon temperature used in the dark-current model.</dd>
   <dt>Dark current (derived, e<sup>−</sup>/s/px)</dt><dd>D(T) at the operating temperature. The dark contribution to noise scales linearly with t<sub>sub</sub>.</dd>
 </dl>
@@ -1362,8 +1509,8 @@ const SIM_VERSION = "v989";
   <dt>Obstruction blur (when ε &gt; 0)</dt><dd>Approximation FWHM = 2.3 · ε · Airy_FWHM. Captures the mid-frequency contrast loss of an annular aperture by adding an extra Gaussian convolution that, through the seeing/Airy/guide PSF, matches the obstructed MTF's dip at s ≈ 0.3·ν<sub>c</sub>. For a 152 mm SCT at ε = 0.33 with Airy FWHM ≈ 0.77″, the obstruction contributes ~0.58″ — comparable to a moderate guide error. See §3.3 for the calibration derivation.</dd>
   <dt>Optical PSF FWHM</dt><dd>√(seeing² + airy² + guide² + obs²). The dominant optical component is labelled at the top of each system's panel.</dd>
   <dt>Pixel sampling (equiv.)</dt><dd>0.68 × pixel_scale. The Gaussian whose second moment matches the boxcar of a single (binned/drizzled) pixel. The factor 0.68 = √(8 ln 2 / 12). pixel_scale here already folds in binning and drizzle via eff_pixel_um = (sensor.pixel_um × binning) / drizzle.</dd>
-  <dt>Image FWHM (with sampling)</dt><dd>√(optical² + sampling²). What a star-detection routine would report. Always larger than the Optical PSF FWHM; the gap is small when well sampled and grows when under-sampled.</dd>
-  <dt>Sampling verdict</dt><dd>Computed from optical_FWHM / pixel_scale. <i>Undersampled</i> &lt; 1.6 px/FWHM (red — pixels too big, resolution sensor-limited; drizzle helps). <i>Well sampled</i> 1.6–4.0 px/FWHM (green — pixels well matched to the optical resolution). <i>Oversampled</i> &gt; 4.0 px/FWHM (gold — pixels smaller than needed; binning recovers SNR without losing resolution).</dd>
+  <dt>Image FWHM (with sampling)</dt><dd>The delivered FWHM: the same MTF = ½ crossing with the pixel sinc included in the product. What a star-detection routine would report on the sampled image. Always larger than the optical PSF FWHM; the gap is small when well sampled and grows when under-sampled.</dd>
+  <dt>Sampling verdict</dt><dd>Computed from optical_FWHM / pixel_scale. <i>Undersampled</i> &lt; 1.4 px/FWHM (red — pixels too big, resolution sensor-limited; drizzle helps). <i>Well sampled</i> 1.4–2.2 px/FWHM (green — matched to the FWHM/1.6 target). <i>Oversampled</i> &gt; 2.2 px/FWHM (gold — pixels finer than the MTF can fill; binning recovers SNR at no real resolution cost).</dd>
 </dl>
 
 <h3 class="section"><span class="num">2.9</span>MTF section</h3>
@@ -1389,11 +1536,11 @@ const SIM_VERSION = "v989";
   <dt>Spatial Cutoff Frequency</dt><dd>The highest spatial frequency the aperture can transmit (where MTF reaches zero). Image space: <code>D / (λ · f)</code> in cycles/mm at the focal plane. Object space: cycles/arcsec on the sky. Above this frequency no detail passes through the optics.</dd>
   <dt>Airy Disk FWHM</dt><dd>The diffraction-limited PSF width. Image space gives both µm and pixels covered. Object space gives arcsec. With a perfectly transparent atmosphere this would be the only blur source.</dd>
   <dt>Seeing FWHM</dt><dd>The atmosphere-induced PSF width. Image space: µm and pixels at the focal plane. Object space: arcsec FWHM on the sky.</dd>
-  <dt>Total FWHM</dt><dd>Quadrature of diffraction, seeing, and guiding: <code>√(FWHM²<sub>Airy</sub> + FWHM²<sub>seeing</sub> + FWHM²<sub>guide</sub>)</code>. The pixels-column number is colour-coded — red if &lt; 1.6 px/FWHM (undersampled) and gold if &gt; 4 px/FWHM (oversampled).</dd>
+  <dt>Total FWHM</dt><dd>Quadrature of diffraction, seeing, and guiding: <code>√(FWHM²<sub>Airy</sub> + FWHM²<sub>seeing</sub> + FWHM²<sub>guide</sub>)</code>. The pixels-column number is colour-coded — red if &lt; 1.4 px/FWHM (undersampled) and gold if &gt; 2.2 px/FWHM (oversampled).</dd>
   <dt>Image FWHM <sup>*</sup></dt><dd>Optical FWHM convolved with the pixel response: <code>√(Total² + (0.68·Δ)²)</code>, where 0.68·Δ is the boxcar pixel's Gaussian-equivalent FWHM (σ = Δ/√12). What a star looks like in the recorded image; unified with the PSF-breakdown row. Croman's Analyzer adds a full pixel (1.0·Δ) instead, so its value reads slightly larger. Same colour-coding as Total FWHM.</dd>
   <dt>Field of View</dt><dd>Sensor dimensions on both axes. Image space: physical sensor width and height in mm. Object space: corresponding sky angles in degrees.</dd>
   <dt>Drizzle reach @ 10% MTF (drizzle &gt; 1 only)</dt><dd>Italic row appearing when any system uses drizzle. Per-system, shows the period (arcsec/cycle) at which contrast hits 10 % in two states: <i>per-frame</i> (binned-only pixel scale) and <i>ceiling</i> (drizzled pixel scale), as <code>X″ → Y″</code>, bracketing the achievable range. The italic styling differentiates this envelope from the hard physical quantities in the other rows.</dd>
-  <dt>Colour legend</dt><dd><b>Green</b> = well sampled. <b>Red</b> = undersampled (&lt; 1.6 px/FWHM) — drizzle or a smaller pixel pitch recovers lost spatial information. <b>Gold</b> = oversampled (&gt; 4 px/FWHM) — bin or use a larger pixel pitch to gain SNR at no resolution cost. Image/Object sub-headers are neutral grey.</dd>
+  <dt>Colour legend</dt><dd><b>Green</b> = well sampled (1.4–2.2 px/FWHM, centred on the FWHM/1.6 target). <b>Red</b> = undersampled (&lt; 1.4 px/FWHM) — drizzle or a smaller pixel pitch recovers lost spatial information. <b>Gold</b> = oversampled (&gt; 2.2 px/FWHM) — bin or use a larger pixel pitch to gain SNR at no resolution cost. Image/Object sub-headers are neutral grey.</dd>
 </dl>
 
 <h3 class="section"><span class="num">2.11</span>SNR vs number of sub-exposures section</h3>
@@ -5358,12 +5505,19 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // is negligible. MTF chart still shows the exact O'Neill curve for analysis.
     const obstruction_eps_psf = Math.min(0.5, Math.max(0, (sys.obstruction_pct || 0) / 100));
     const obstruction_fwhm = 2.3 * obstruction_eps_psf * airy_fwhm;
-    const psf_fwhm_arcsec = Math.sqrt(seeing_fwhm * seeing_fwhm
-                                     + airy_fwhm * airy_fwhm
-                                     + guide_fwhm * guide_fwhm
-                                     + obstruction_fwhm * obstruction_fwhm);
-    
-    // Sampling check: Nyquist needs pixel_scale ≤ FWHM/2
+    // v991: exact PSF FWHM, measured on the convolved profile (see truePsfFwhm).
+    // `delivered` adds the pixel box-car: the FWHM a star-detection routine would
+    // measure on the sampled image. `obstruction_cost` is the derived widening the
+    // central obstruction causes -- it can go slightly negative for a diffraction-
+    // dominated system, because an annular aperture narrows the core while moving
+    // energy out into the rings.
+    const psf_fwhm_arcsec = truePsfFwhm(sys.aperture_mm, seeing_fwhm, guide_rms_arcsec, obstruction_eps_psf, 0);
+    const delivered_fwhm_arcsec = truePsfFwhm(sys.aperture_mm, seeing_fwhm, guide_rms_arcsec, obstruction_eps_psf, pixel_scale);
+    const diffraction_equiv_fwhm = truePsfFwhm(sys.aperture_mm, 0, 0, obstruction_eps_psf, 0);
+    const obstruction_cost_fwhm = psf_fwhm_arcsec
+      - truePsfFwhm(sys.aperture_mm, seeing_fwhm, guide_rms_arcsec, 0, 0);
+
+    // Sampling: verdict band centred on the Q = FWHM/1.6 target (v989)
     const sampling_ratio = psf_fwhm_arcsec / pixel_scale; // pixels per FWHM
     
     // Sky background rate (e-/s/px). Calibrated to SQM 17.80 = 4.5 e/s/px for
@@ -5627,7 +5781,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       // included in the psf_fwhm_arcsec quadrature sum. Exposed so PSF-breakdown
       // displays can show it as a fourth component when > 0.
       obstruction_fwhm,
-      psf_fwhm_arcsec,
+      psf_fwhm_arcsec, delivered_fwhm_arcsec, diffraction_equiv_fwhm, obstruction_cost_fwhm,
       sampling_ratio,
       sky_rate, dark_rate, signal_rate,
       signal_rate_ha, signal_rate_oiii, signal_rate_bb,
@@ -6015,9 +6169,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   
   // Sampling indicators: pixels per FWHM, with verdict (the single source of
   // truth — every displayed verdict uses these same thresholds/colours):
-  // - "undersampled" : < 1.6 px / FWHM (red, suggest drizzle or finer pixel)
-  // - "well sampled"  : 1.6 to 4.0 px / FWHM (teal; ideal Nyquist ~2.5-3)
-  // - "oversampled"  : > 4.0 px / FWHM (gold, suggest bin)
+  // Bands below (v989): centred on the Q = FWHM/1.6 target.
   // v989: sampling bands re-centred on the information-theoretic target
   // Q = FWHM/1.6. At 1.6 px/FWHM a Gaussian MTF still carries ~10% contrast at
   // Nyquist; ~2.8% at Q=2 and ~0.03% at Q=3 — so finer sampling mostly buys
@@ -15032,7 +15184,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             ].map(({label, d, color, samp, effPix, bin}) => {
               const opticalEntries = [
                 { name: "Seeing (atmosphere)", v: d.seeing_fwhm, c: "#7fc4d4" },
-                { name: "Airy (diffraction)",  v: d.airy_arcsec,  c: "#d4a437" },
+                { name: "Diffraction (Airy + obstruction)", v: d.diffraction_equiv_fwhm ?? d.airy_arcsec, c: "#d4a437" },
                 // v911: surface the RMS-to-FWHM conversion factor inline so the
                 // value isn\u2019t a black box. The simulator reports guide error as
                 // RMS (\u03c3) per the standard PHD2 / NINA convention, but the PSF
@@ -15053,7 +15205,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 // what's actually applied to the rendered image. Color picked to read
                 // as a "loss-style" term (muted red-orange) distinct from the existing
                 // Seeing / Airy / Guide palette.
-                { name: "Obstruction blur",    v: d.obstruction_fwhm || 0, c: "#c97a5f" },
+                { name: "Obstruction cost (derived)", v: d.obstruction_cost_fwhm || 0, c: "#c97a5f" },
               ].filter(e => e.v > 0).sort((a, b) => b.v - a.v);
               const opticalTotal = d.psf_fwhm_arcsec;
               // v903→v924: samplingEquiv reflects the EFFECTIVE pixel scale (the
