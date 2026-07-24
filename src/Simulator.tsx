@@ -1092,7 +1092,7 @@ const PARAM_GUIDE_HTML = `<div class="banner">EVERY ROW READS: WHAT HAPPENS WHEN
         <td><span class="flat">—</span> unchanged</td>
         <td><span class="dn">▼</span> coarser sampling; undersampling risk</td>
         <td><span class="dn">▼</span> blocky if undersampled</td>
-        <td>Equivalent to binning at fixed optics. Sweet spot: pixel ≈ FWHM/2–3 (sample the seeing, waste nothing).</td>
+        <td>Equivalent to binning at fixed optics. Target: pixel ≈ FWHM/1.6 — finer only samples frequencies the MTF has already killed.</td>
       </tr>
       <tr>
         <td class="param">Quantum efficiency (QE)</td>
@@ -1142,8 +1142,8 @@ const PARAM_GUIDE_HTML = `<div class="banner">EVERY ROW READS: WHAT HAPPENS WHEN
     </tbody>
   </table>`;
 
-const SIM_VERSION = "v988";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide (per-parameter impact on per-pixel SNR, SNR/arcsec\u00b2, detection depth, resolution, stars) as a light reference-sheet modal, opened by a prominent gold PARAMETER EFFECTS GUIDE button in the header.\n\n\u2022 v987 \u2014 Reflection Nebula (Faint): more natural dust (gallery v0.6) \u2014 domain-warped asymmetric body with softer edges (no square super-Gaussian), a large-scale shape mask + ridged dark lanes, and a non-uniform IFN with real dark voids (bigger clouds, higher threshold).\n\n\u2022 v986 \u2014 Reflection Nebula (Faint) upgraded to gallery variant D v0.5: 3\u00d7 wider field (3\u2033/basepx, 64\u2032\u00d740\u2032), three widely-spread illuminators, Integrated Flux Nebula (brown galactic cirrus) filling the field at edge-of-detection, and a dust veil over the rightmost illuminator (extincted/reddened, front dust glows brown). Brighter default kept (Intensity 2.63\u00d7 / Shadows +0.47).\n\n\u2022 v985 \u2014 Reflection nebula: renamed to 'Reflection Nebula (Faint)' and brightened its default so it isn't dark on first bake \u2014 slider-neutral now equals Intensity 2.63\u00d7 + Shadows +0.47 (stretchBaseline 0.38, shadowsBaseline 1.47).\n\n\u2022 v984 \u2014 Added a procedural Reflection nebula target (gallery variant D): three illuminators with organic blue scattered-light filaments, a warm ridged dust complex + opaque dark core, and faint outer shells at the edge of detection. Direct-RGB (broadband_rgb) compose, 1\u2033/basepx (field 21.3\u2032\u00d713.3\u2032). Correctly just dims under narrowband.\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+const SIM_VERSION = "v989";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v989 \u2014 Two fixes from external review. (1) System B default is now a real instrument: Celestron Origin 152 mm f/2.2 with its 41% central obstruction \u2014 previously 0%, which is unbuildable at that f-ratio and overstated both collecting area and MTF. (2) Sampling verdict re-centred on the Q = FWHM/1.6 target: bands are now 1.4\u20132.2 'well sampled' (was 1.6\u20134.0, which treated the ideal as the floor and green-lit 2.5\u00d7 oversampling), and each system now shows its target \u2033/px beside the actual.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide (per-parameter impact on per-pixel SNR, SNR/arcsec\u00b2, detection depth, resolution, stars) as a light reference-sheet modal, opened by a prominent gold PARAMETER EFFECTS GUIDE button in the header.\n\n\u2022 v987 \u2014 Reflection Nebula (Faint): more natural dust (gallery v0.6) \u2014 domain-warped asymmetric body with softer edges (no square super-Gaussian), a large-scale shape mask + ridged dark lanes, and a non-uniform IFN with real dark voids (bigger clouds, higher threshold).\n\n\u2022 v986 \u2014 Reflection Nebula (Faint) upgraded to gallery variant D v0.5: 3\u00d7 wider field (3\u2033/basepx, 64\u2032\u00d740\u2032), three widely-spread illuminators, Integrated Flux Nebula (brown galactic cirrus) filling the field at edge-of-detection, and a dust veil over the rightmost illuminator (extincted/reddened, front dust glows brown). Brighter default kept (Intensity 2.63\u00d7 / Shadows +0.47).\n\n\u2022 v985 \u2014 Reflection nebula: renamed to 'Reflection Nebula (Faint)' and brightened its default so it isn't dark on first bake \u2014 slider-neutral now equals Intensity 2.63\u00d7 + Shadows +0.47 (stretchBaseline 0.38, shadowsBaseline 1.47).\n\n\u2022 v984 \u2014 Added a procedural Reflection nebula target (gallery variant D): three illuminators with organic blue scattered-light filaments, a warm ridged dust complex + opaque dark core, and faint outer shells at the edge of detection. Direct-RGB (broadband_rgb) compose, 1\u2033/basepx (field 21.3\u2032\u00d713.3\u2032). Correctly just dims under narrowband.\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -1153,7 +1153,7 @@ const SIM_VERSION = "v988";
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v988</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v989</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1475,11 +1475,11 @@ const SIM_VERSION = "v988";
 <p class="body">A pixel records the average of the optical signal across its sky footprint. For a pure cosine input cos(2π·ν·x) of spatial frequency ν, the pixel-averaged value at the centre of a pixel of width Δ is cos(2π·ν·x<sub>0</sub>) · sinc(π·ν·Δ). The factor sinc(π·ν·Δ) is the <b>pixel MTF</b>: a smooth roll-off that reaches its first zero at ν = 1/Δ and is already at sinc(π/2) ≈ 0.637 at Nyquist ν = 1/(2Δ). The full system MTF is therefore</p>
 <div class="equation">MTF<sub>sys</sub>(ν) = MTF<sub>diff</sub>(ν) · exp(−2π<sup>2</sup>σ<sup>2</sup><sub>see</sub>ν<sup>2</sup>) · exp(−2π<sup>2</sup>σ<sup>2</sup><sub>guide</sub>ν<sup>2</sup>) · sinc(π·ν·Δ)</div>
 <p class="body">i.e. the optical MTF from §3.3 multiplied by the pixel sinc. The MTF chart plots both — solid curves are MTF<sub>opt</sub> alone, dashed include the sinc — and the gap between them is the sampling penalty.</p>
-<p class="body"><b>Nyquist's actual guarantee.</b> The Nyquist–Shannon theorem says a signal band-limited to ν<sub>max</sub> can be <i>exactly reconstructed</i> from samples at rate 2·ν<sub>max</sub> or higher, regardless of the phase of the sampling grid relative to the signal. The reconstruction is the convolution of the discrete samples with an ideal sinc kernel — the inverse of the box-car integration the pixels performed. Information-theoretically, samples at Q = 2 pixels per cycle are sufficient. The simulator's "well sampled" band of 1.6–4.0 pixels per FWHM is consistent with this floor but adds practical margin.</p>
+<p class="body"><b>Nyquist's actual guarantee.</b> The Nyquist–Shannon theorem says a signal band-limited to ν<sub>max</sub> can be <i>exactly reconstructed</i> from samples at rate 2·ν<sub>max</sub> or higher, regardless of the phase of the sampling grid relative to the signal. The reconstruction is the convolution of the discrete samples with an ideal sinc kernel — the inverse of the box-car integration the pixels performed. Information-theoretically, samples at Q = 2 pixels per cycle are sufficient. The simulator's "well sampled" band of 1.4–2.2 pixels per FWHM sits just above this floor, centred on the FWHM/1.6 target.</p>
 <p class="body"><b>Why pixel readout looks worse than Nyquist promises.</b> What appears on screen — and what feeds most astrophotography pipelines — is the raw pixel readout displayed with <i>nearest-neighbour</i> reconstruction, not ideal sinc reconstruction. Each pixel becomes a flat block of the value it sampled. Three effects then make the displayed signal look different from the underlying cosine, even at Q = 3 or 4:</p>
 <p class="body">(1) <b>Half-pixel phase offset.</b> Pixel centres sit at +0.5·Δ; a crest at sky-x = 0 is first sampled at phase π·Δ/P, so the cell shows cos(π·Δ/P) of the true crest (at Q = 4, ≈0.71) and the actual peak, falling between cells, is never displayed. (2) <b>Beat between cosine and pixel periods.</b> Unless P/Δ is a small integer the phase drifts across the swatch, so cells land variously near crests, zeros, and troughs — bars come out unequal, repeating only over a long beat. This pattern <i>is</i> the aliasing footprint of finite sampling. (3) <b>8-bit quantization.</b> A 50 % cosine swings 128 levels (quantization invisible); a 5 % cosine only ~13, so rounding destroys the cosine shape in the low-contrast columns before the geometric effects above would.</p>
 <p class="body"><b>What real processing recovers.</b> Information lost to nearest-neighbour display is not information lost from the samples. Astrophotography pipelines bridge the gap with sub-pixel <b>dithering</b> (offsetting successive frames by fractional-pixel amounts so the stack samples the scene at many sub-pixel phases — directly attacking effect 1), <b>stacking</b> (averaging dithered subs reconstructs intermediate values), <b>drizzle</b> (explicit construction of a finer output grid), and <b>deconvolution</b> (a partial inversion of the full PSF · pixel-sinc kernel). After this chain, contrast at any frequency below the system Nyquist can largely be recovered, in line with the theorem.</p>
-<p class="body"><b>Why practical advice is Q ≥ 3 even though Nyquist gives Q = 2.</b> The bare 2× rate is the theoretical floor for an ideal-sinc reconstruction of a perfectly band-limited noise-free signal. Real targets are not band-limited (content above 1/(2Δ) aliases down into the captured band as fake detail); noise erodes reconstruction; and real pipelines use bilinear / Lanczos / drizzle / deconvolution rather than ideal sinc, each leaving residual artefacts near Nyquist. The empirical buffer to Q ≈ 3 absorbs all of this. The "well sampled" band of 1.6–4.0 is centred on this practical sweet spot; below 1.6 the per-frame penalty is too large to fully recover, above 4.0 the SNR-per-resolution-element drops without further visible benefit.</p>
+<p class="body"><b>Why practical advice is Q ≥ 3 even though Nyquist gives Q = 2.</b> The bare 2× rate is the theoretical floor for an ideal-sinc reconstruction of a perfectly band-limited noise-free signal. Real targets are not band-limited (content above 1/(2Δ) aliases down into the captured band as fake detail); noise erodes reconstruction; and real pipelines use bilinear / Lanczos / drizzle / deconvolution rather than ideal sinc, each leaving residual artefacts near Nyquist. The empirical buffer to Q ≈ 3 absorbs all of this. v989 re-centres the verdict on the information-theoretic target Q = FWHM/1.6: at 1.6 px/FWHM a Gaussian MTF still holds ~10 % contrast at Nyquist, against ~2.8 % at Q = 2 and ~0.03 % at Q = 3, so sampling finer than ~1.6 mostly buys frequencies the system has already destroyed. The band is therefore 1.4–2.2 "well sampled", anything above 2.2 flagged oversampled; the older Q ≈ 3 advice survives only as conservative margin for aggressive deconvolution.</p>
 <p class="body"><b>How the stripe-swatch table makes this visible.</b> The MTF chart gives the curve — what contrast survives at each frequency. The stripe table gives the rendered cosine at the just-resolved period for each contrast level, in two rows per system: the <i>optical resolved</i> row (densely-sampled smooth cosine — what the optics deliver onto the focal plane) and the <i>pixel resolved</i> row (cosine sampled at sky-pixel centres and painted as flat blocks — what the sensor records as raw readout). Both rows render at the same labelled Michelson contrast, so visible differences are pure consequences of (1)–(3). The pixel row is a worst-case readout — a single sub with no stacking or processing — and the gap to the optical row above it is the maximum amount downstream processing has to claw back. A toggle flips the table between contrast-indexed columns and resolution-indexed columns (§2.9).</p>
 
 <h3 class="section"><span class="num">3.5</span>Sensor model: full well, saturation, star bloating</h3>
@@ -1982,7 +1982,11 @@ const SIM_VERSION = "v988";
     guide_rms_arcsec: 1.5,
   }));
   const [sysB, setSysB] = useState(defaultSystem({
-    aperture_mm: 152, focal_length_mm: 335, sensor: "asi678",
+    // v989: Celestron Origin (152 mm f/2.2 RASA-type). The 41% central
+    // obstruction was missing, which made the default an unbuildable system:
+    // no unobstructed 152 mm f/2.2 telescope exists (the camera sits at prime
+    // focus in this design). Affects collecting area (1-e^2) and the MTF.
+    aperture_mm: 152, focal_length_mm: 335, sensor: "asi678", obstruction_pct: 41,
     seeing_arcsec: 1.5, sqm: 21.5, ambient_C: 20,
     guide_rms_arcsec: 1.0,
   }));
@@ -6014,12 +6018,21 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // - "undersampled" : < 1.6 px / FWHM (red, suggest drizzle or finer pixel)
   // - "well sampled"  : 1.6 to 4.0 px / FWHM (teal; ideal Nyquist ~2.5-3)
   // - "oversampled"  : > 4.0 px / FWHM (gold, suggest bin)
+  // v989: sampling bands re-centred on the information-theoretic target
+  // Q = FWHM/1.6. At 1.6 px/FWHM a Gaussian MTF still carries ~10% contrast at
+  // Nyquist; ~2.8% at Q=2 and ~0.03% at Q=3 — so finer sampling mostly buys
+  // frequencies the system already destroyed. The old 1.6-4.0 band treated the
+  // target as its FLOOR and called 2.5x oversampling "well sampled".
+  const SAMP_LO = 1.4, SAMP_HI = 2.2;
+  function sampColor(r) { return r < SAMP_LO ? "#c95d4f" : r > SAMP_HI ? "#d4a437" : "#5cb85c"; }
+  function sampWord(r) { return r < SAMP_LO ? "(undersampled)" : r > SAMP_HI ? "(oversampled)" : "(well sampled)"; }
+  function samplingTarget(d) { return d.psf_fwhm_arcsec / 1.6; }  // ideal arcsec/px
   function samplingVerdict(d) {
     const ratio = d.psf_fwhm_arcsec / d.pixel_scale;
     let verdict = "well sampled";
     let color = "#5cb85c";  // green = well sampled (distinct from System B teal)
-    if (ratio < 1.6) { verdict = "undersampled"; color = "#c95d4f"; }
-    else if (ratio > 4.0) { verdict = "oversampled"; color = "#d4a437"; }
+    if (ratio < SAMP_LO) { verdict = "undersampled"; color = "#c95d4f"; }
+    else if (ratio > SAMP_HI) { verdict = "oversampled"; color = "#d4a437"; }
     return { ratio, verdict, color };
   }
   const sampA = samplingVerdict(dA);
@@ -6057,8 +6070,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     const ratio = d_self.psf_fwhm_arcsec / eff;
     let verdict = "well sampled";
     let color = "#5cb85c";
-    if (ratio < 1.6) { verdict = "undersampled"; color = "#c95d4f"; }
-    else if (ratio > 4.0) { verdict = "oversampled"; color = "#d4a437"; }
+    if (ratio < SAMP_LO) { verdict = "undersampled"; color = "#c95d4f"; }
+    else if (ratio > SAMP_HI) { verdict = "oversampled"; color = "#d4a437"; }
     return { ratio, verdict, color, effective_pixel_scale: eff };
   }
   const binFactorA = getBinningFactorVM(dA, samplingViewMode);
@@ -12002,8 +12015,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         const matched = samplingViewMode !== "native";
         const ps = matched ? samp.effective_pixel_scale : d.pixel_scale;
         const sr = matched ? samp.ratio : d.sampling_ratio;
-        const col = sr < 1.6 ? "#c95d4f" : sr > 4.0 ? "#d4a437" : "#5cb85c";
-        const verdict = sr < 1.6 ? "(undersampled)" : sr > 4.0 ? "(oversampled)" : "(well sampled)";
+        const col = sampColor(sr);
+        const verdict = sampWord(sr);
         return [
           { t: "PSF " + d.psf_fwhm_arcsec.toFixed(2) + "\u2033 FWHM", c: GREY },
           { t: ps.toFixed(2) + "\u2033/px" + (matched && bin > 1.01 ? " \u00d7" + bin.toFixed(1) : ""), c: GREY },
@@ -12768,8 +12781,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         <div style={{ marginBottom: 10, padding: "6px 8px", background: "rgba(0,0,0,0.25)", borderRadius: 2, fontSize: 10, color: "#9aa5bb" }}>
           Pixel scale: <span style={{ color }}>{derived.pixel_scale.toFixed(2)}″/px</span> ·
           PSF FWHM: <span style={{ color }}>{derived.psf_fwhm_arcsec.toFixed(2)}″</span> ·
-          Sampling: <span style={{ color: derived.sampling_ratio < 1.6 ? "#c95d4f" : derived.sampling_ratio > 4.0 ? "#d4a437" : "#5cb85c" }}>
-            {derived.sampling_ratio.toFixed(1)}px/FWHM {derived.sampling_ratio < 1.6 ? "(undersampled)" : derived.sampling_ratio > 4.0 ? "(oversampled)" : "(well sampled)"}
+          Sampling: <span style={{ color: sampColor(derived.sampling_ratio) }}>
+            {derived.sampling_ratio.toFixed(1)}px/FWHM {sampWord(derived.sampling_ratio)}
           </span>
         </div>
         
@@ -12851,7 +12864,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         {sys.drizzle > 1 && (() => {
           const ratio = derived.psf_fwhm_arcsec / (derived.pixel_scale * sys.drizzle);  // Q at the binned-only (un-drizzled) scale
           let msg, tone;
-          if (ratio < 1.6) {
+          if (ratio < SAMP_LO) {
             msg = "Undersampled — drizzle can recover sub-pixel detail given many well-dithered subs.";
             tone = "#5fb3a1";
           } else if (ratio < 4.0) {
@@ -14454,12 +14467,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   const matched = samplingViewMode !== "native";
                   const ps = matched ? sampA_eff.effective_pixel_scale : dA.pixel_scale;
                   const sr = matched ? sampA_eff.ratio : dA.sampling_ratio;
-                  const col = sr < 1.6 ? "#c95d4f" : sr > 4.0 ? "#d4a437" : "#5cb85c";
+                  const col = sampColor(sr);
                   return (<>
                     PSF {dA.psf_fwhm_arcsec.toFixed(2)}″ FWHM · {ps.toFixed(2)}″/px{matched && binFactorA > 1.01 ? ` ×${binFactorA.toFixed(1)}` : ""} · 
                     Sampling <span style={{ color: col }}>
-                      {sr.toFixed(1)}px/FWHM {sr < 1.6 ? "(undersampled)" : sr > 4.0 ? "(oversampled)" : "(well sampled)"}
-                    </span> · m_lim {dA.limiting_mag.toFixed(1)}
+                      {sr.toFixed(1)}px/FWHM {sampWord(sr)}
+                    </span> · target {samplingTarget(dA).toFixed(2)}″/px · m_lim {dA.limiting_mag.toFixed(1)}
                   </>);
                 })()}
               </div>
@@ -14557,12 +14570,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   const matched = samplingViewMode !== "native";
                   const ps = matched ? sampB_eff.effective_pixel_scale : dB.pixel_scale;
                   const sr = matched ? sampB_eff.ratio : dB.sampling_ratio;
-                  const col = sr < 1.6 ? "#c95d4f" : sr > 4.0 ? "#d4a437" : "#5cb85c";
+                  const col = sampColor(sr);
                   return (<>
                     PSF {dB.psf_fwhm_arcsec.toFixed(2)}″ FWHM · {ps.toFixed(2)}″/px{matched && binFactorB > 1.01 ? ` ×${binFactorB.toFixed(1)}` : ""} · 
                     Sampling <span style={{ color: col }}>
-                      {sr.toFixed(1)}px/FWHM {sr < 1.6 ? "(undersampled)" : sr > 4.0 ? "(oversampled)" : "(well sampled)"}
-                    </span> · m_lim {dB.limiting_mag.toFixed(1)}
+                      {sr.toFixed(1)}px/FWHM {sampWord(sr)}
+                    </span> · target {samplingTarget(dB).toFixed(2)}″/px · m_lim {dB.limiting_mag.toFixed(1)}
                   </>);
                 })()}
               </div>
@@ -14624,7 +14637,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             const matched = samplingViewMode !== "native";
             const ps = matched ? samp.effective_pixel_scale : d.pixel_scale;
             const sr = matched ? samp.ratio : d.sampling_ratio;
-            const col = sr < 1.6 ? "#c95d4f" : sr > 4.0 ? "#d4a437" : "#5cb85c";
+            const col = sampColor(sr);
             return (
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 10, flexWrap: "wrap", gap: 4 }}>
@@ -14655,7 +14668,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 </div>
                 <div style={{ marginTop: 4, fontSize: 9, color: "#6a7894", textAlign: "center" }}>
                   PSF {d.psf_fwhm_arcsec.toFixed(2)}″ FWHM · {ps.toFixed(2)}″/px{matched && bin > 1.01 ? ` ×${bin.toFixed(1)}` : ""} · 
-                  Sampling <span style={{ color: col }}>{sr.toFixed(1)}px/FWHM {sr < 1.6 ? "(undersampled)" : sr > 4.0 ? "(oversampled)" : "(well sampled)"}</span> · m_lim {d.limiting_mag.toFixed(1)}
+                  Sampling <span style={{ color: col }}>{sr.toFixed(1)}px/FWHM {sampWord(sr)}</span> · m_lim {d.limiting_mag.toFixed(1)}
                 </div>
                 {/* v950: Flash pane was missing the sensor / crop-in-pixels caption
                     row that side-by-side shows; mirror it here using the shown system. */}
@@ -15411,8 +15424,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               const fov_w_mm = sensor.width_mm, fov_h_mm = sensor.height_mm;
               const fov_w_deg = d.fov_w_arcmin / 60, fov_h_deg = d.fov_h_arcmin / 60;
               // Verdict colors for total_pixels and image_pixels
-              const undersamp = total_pixels < 1.6;
-              const oversamp = total_pixels > 4.0;
+              const undersamp = total_pixels < SAMP_LO;
+              const oversamp = total_pixels > SAMP_HI;
               const sampleColor = undersamp ? "#c95d4f" : (oversamp ? "#d4a437" : "#5cb85c");
               return {
                 eff_pixel_um, pixel_scale_arcsec,
