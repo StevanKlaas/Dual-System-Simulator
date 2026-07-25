@@ -1006,7 +1006,7 @@ const PARAM_GUIDE_HTML = `<div class="banner">EVERY ROW READS: WHAT HAPPENS WHEN
         <td><span class="dn">▼</span> light divided onto finer grid</td>
         <td><span class="flat">—</span> unchanged</td>
         <td><span class="flat">—</span> unchanged</td>
-        <td><span class="cond">◆</span> recovers detail only if undersampled + dithered</td>
+        <td><span class="cond">◆</span> recovers detail only if per-frame undersampled (&lt; ~1.4 px/FWHM) + dithered; otherwise just smoother-looking</td>
         <td><span class="up">▲</span> rounder profiles when undersampled</td>
         <td>The inverse of binning on the display grid; adds no photons, so depth is untouched.</td>
       </tr>
@@ -1288,8 +1288,8 @@ function fwhmFromMTF(aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_sc
   return nu_half > 0 ? FWHM_FROM_NU_HALF / nu_half : 0;
 }
 
-const SIM_VERSION = "v993";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v993 \u2014 Fixed the point-source limiting magnitude improving ~0.75 mag per binning step. The m_lim background variance used the native sky and dark rates while the read-noise term was already binned and the photometric aperture correctly shrank as 1/bin_area, so the sky/dark contribution dropped spuriously. Now uses the binned rates, making m_lim exactly binning-invariant \u2014 the correct result, since digital binning collects no extra photons.\n\n\u2022 v992 \u2014 Documentation swept for the retired PSF model: \u00a72.2 optics, the \u00a72.6 obstruction / seeing / guide / PSF-FWHM entries, \u00a72.8 PSF-breakdown, the analysis-table Total and Image FWHM entries, and the \u00a73.3 derivation all still described quadrature-of-Gaussians with the 2.3\u00b7\u03b5\u00b7airy obstruction fudge; all now describe the exact convolved-profile method, with the Hankel equation given. Fixed the in-app PSF-breakdown caption, which still claimed the components combine in quadrature. Image FWHM readouts now use the exact delivered value instead of \u221a(optical\u00b2 + (0.68\u00b7\u0394)\u00b2); the 0.68 pixel bar stays but is relabelled diagnostic-only.\n\n\u2022 v991 \u2014 PSF FWHM is now measured EXACTLY on the convolved profile: the OTF product is inverse-Hankel-transformed to the radial PSF and the half-maximum solved directly. Corrects v990, whose MTF=\u00bd crossing ran ~10% wide (it measures contrast resolution, not core width), and removes the last calibration constant \u2014 the obstruction never had a valid one (the k matching the true profile ranges 1.2\u20135.3). Verified to ~0.1%; pure-Gaussian inputs return exactly. MTF chart and contrast-stripe table are unaffected \u2014 they were always computed from computeMTF, independent of the PSF FWHM.\n\n\u2022 v990 (FWHM method superseded) \u2014 PSF FWHM read off the MTF = \u00bd crossing of the product of the component transfer functions (annular diffraction OTF \u00d7 seeing \u00d7 guiding), instead of a quadrature sum of Gaussian-equivalent FWHMs \u2014 exact for the non-Gaussian contributors, where quadrature under-reported. The empirical 2.3\u00b7\u03b5\u00b7airy obstruction term is retired (the annular OTF contains the obstruction), replaced by a derived 'obstruction cost' readout. Added a delivered FWHM including the pixel sinc. Stale 1.6\u20134.0 sampling text corrected across docs, analysis-table footnotes and legend.\n\n\u2022 v989 \u2014 Two fixes from external review. (1) System B default is now a real instrument: Celestron Origin 152 mm f/2.2 with its 41% central obstruction \u2014 previously 0%, which is unbuildable at that f-ratio and overstated both collecting area and MTF. (2) Sampling verdict re-centred on the Q = FWHM/1.6 target: bands are now 1.4\u20132.2 'well sampled' (was 1.6\u20134.0, which treated the ideal as the floor and green-lit 2.5\u00d7 oversampling), and each system now shows its target \u2033/px beside the actual.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide (per-parameter impact on per-pixel SNR, SNR/arcsec\u00b2, detection depth, resolution, stars) as a light reference-sheet modal, opened by a prominent gold PARAMETER EFFECTS GUIDE button in the header.\n\n\u2022 v987 \u2014 Reflection Nebula (Faint): more natural dust (gallery v0.6) \u2014 domain-warped asymmetric body with softer edges (no square super-Gaussian), a large-scale shape mask + ridged dark lanes, and a non-uniform IFN with real dark voids (bigger clouds, higher threshold).\n\n\u2022 v986 \u2014 Reflection Nebula (Faint) upgraded to gallery variant D v0.5: 3\u00d7 wider field (3\u2033/basepx, 64\u2032\u00d740\u2032), three widely-spread illuminators, Integrated Flux Nebula (brown galactic cirrus) filling the field at edge-of-detection, and a dust veil over the rightmost illuminator (extincted/reddened, front dust glows brown). Brighter default kept (Intensity 2.63\u00d7 / Shadows +0.47).\n\n\u2022 v985 \u2014 Reflection nebula: renamed to 'Reflection Nebula (Faint)' and brightened its default so it isn't dark on first bake \u2014 slider-neutral now equals Intensity 2.63\u00d7 + Shadows +0.47 (stretchBaseline 0.38, shadowsBaseline 1.47).\n\n\u2022 v984 \u2014 Added a procedural Reflection nebula target (gallery variant D): three illuminators with organic blue scattered-light filaments, a warm ridged dust complex + opaque dark core, and faint outer shells at the edge of detection. Direct-RGB (broadband_rgb) compose, 1\u2033/basepx (field 21.3\u2032\u00d713.3\u2032). Correctly just dims under narrowband.\n\n\u2022 v983 \u2014 Doubled the sky-gradient (realism C) from v982: now ~1.6% peak-to-peak (40% of original). FPN and BG-residual stay at 20%. Render (JS + WASM) and both SNR paths scaled together.\n\n\u2022 v982 \u2014 Reduced the real-world-imperfection strength to 20% of prior (per request): FPN 0.5%\u21920.1%, sky-gradient ~4%\u21920.8% peak-to-peak, BG-residual 0.8%\u21920.16% of the sky pedestal. Scaled consistently on the render side (JS + WASM) and both SNR paths so the numbers still match the image.\n\n\u2022 v981 \u2014 Added the Sony IMX415 sensor (Odyssey Pro): 1.45\u00b5m px, 3864\u00d72192 (8.4 MP), 1/2.8\u2033 (5.60\u00d73.18 mm, 6.43 mm diag), 3 e\u207b read (HCG), ASI183 dark-current model. QE/full-well/ADC are reasonable estimates (not published).\n\n\u2022 v980 \u2014 Reverted the v972 blur edge change (JS + WGSL) back to clamp-to-edge: the zero-pad broke the 'JS blur == WASM' invariant and darkened bright edges ~47% at the border, which feeds SNR probe placement. Not needed \u2014 the upload plumes were fixed in v973/v974 (resample + cam-scale clean cut).\n\n\u2022 v979 \u2014 Boot splash instant again (detection-fraction memo no longer bakes during first render).\n\n\u2022 v974\u2013v978 \u2014 Upload plumes fixed (cam-scale clean cut for uploads); Whites slider reworked (left lowers / right raises) with Render-button workflow.\n\n\u2022 v960\u2013v972 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric and its physics fixes; GPU galaxy path removed; dual PNG/GIF flash export.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history. v943\u2013v949 experiments abandoned.";
+const SIM_VERSION = "v996";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v996 \u2014 Follow-up to v995: the display stretch anchor (peakRate) now also scales by 1/drizzle\u00b2, in both the per-system equal-brightness path and the shared-stretch path. v995 correctly lowered each drizzled pixel to its 1/drizzle\u00b2 photon share, but the white point still referenced the native peak, so the drizzled panel rendered ~9\u00d7 too dark. Anchor and pixels now share the same per-pixel scale \u2014 equal-brightness matching holds, and drizzled vs non-drizzled differ only in real noise/sampling, not overall brightness.\n\n\u2022 v995 \u2014 Critical drizzle render fix. The synthetic image painted each drizzled output pixel with the full native-pixel photon count instead of its 1/drizzle\u00b2 share, so a 3\u00d7 drizzle gave every one of 9 pixels the whole flux \u2014 effectively 9\u00d7 the photons, lifting per-pixel SNR by \u00d73 and faking a bigger-aperture / darker-sky look (smoother background, faint arms and clusters climbing out of the noise). The electron means (signal, sky, dark) now divide by drizzle\u00b2, giving each finer pixel its correct photon share and an identical background noise floor per unit sky area whether drizzled or not. Star-peak normalization (native scale) and read noise (per readout pixel) unaffected. This is the render-side counterpart to the v994 statistics fix.\n\n\u2022 v994 \u2014 Honest drizzle model. Drizzle still divides photons across D\u00b2 output pixels (per-pixel SNR \u00d71/D), but it is now only credited with *recovering* detail when the per-frame data is undersampled (< ~1.4 px/FWHM) and dithered (assumed present) \u2014 on well/over-sampled data it adds no resolution, only a smoother look from the eye integrating over more pixels. And because the drizzle kernel spreads each photon across neighbouring output pixels, the per-pixel \u03c3 is flagged as noise-correlated (it understates the true noise per resolution element); the honest, drizzle-invariant figure is SNR/arcsec\u00b2. A per-system verdict now states which case applies.\n\n\u2022 v993 \u2014 Fixed point-source m_lim improving ~0.75 mag per binning step: the background variance used native sky/dark rates while read noise was binned and the aperture shrank as 1/bin_area. Now uses binned rates \u2014 m_lim is exactly binning-invariant.\n\n\u2022 v992 \u2014 Documentation swept for the retired PSF model (\u00a72.2/2.6/2.8/3.3, analysis table, in-app caption): all now describe the exact convolved-profile FWHM with the Hankel equation; Image FWHM readouts use the exact delivered value.\n\n\u2022 v991 \u2014 PSF FWHM measured EXACTLY on the convolved profile (OTF product \u2192 inverse Hankel \u2192 half-maximum). Corrects the v990 MTF=\u00bd crossing (~10% wide) and removes the obstruction fudge constant. Verified to ~0.1%.\n\n\u2022 v989 \u2014 System B default is a real instrument (Celestron Origin 152 mm f/2.2, 41% obstruction); sampling verdict re-centred on Q = FWHM/1.6 (bands 1.4\u20132.2), target \u2033/px shown.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide as a modal (gold header button).\n\n\u2022 v984\u2013v987 \u2014 Procedural Reflection Nebula (Faint): wide field, spread illuminators, IFN cirrus, veiled illuminator, organic dust with dark lanes.\n\n\u2022 v980\u2013v983 \u2014 Realism-imperfection strengths retuned; upload blur edge reverted to clamp; IMX415 sensor added.\n\n\u2022 v960\u2013v979 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric; GPU galaxy path removed; dual PNG/GIF flash export; boot-splash fix; Whites slider.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -1299,7 +1299,7 @@ const SIM_VERSION = "v993";
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v993</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v996</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1448,7 +1448,7 @@ const SIM_VERSION = "v993";
   <dt>Number of subs</dt><dd>How many frames are stacked. SNR grows ≈ √N in the shot-noise-limited regime.</dd>
   <dt>Filter</dt><dd>UV/IR-cut (broadband, 95 % transmission), Duoband (Hα + OIII), or narrowband (e.g. 7 nm). Narrower passbands cut sky background dramatically, helping emission targets from light-polluted skies.</dd>
   <dt>Binning</dt><dd>Combine pixels (e.g. 2×2) for higher SNR per output pixel at coarser resolution. Multiplies sky, dark, and target rates by b²; effective pixel = pixel · b.</dd>
-  <dt>Drizzle</dt><dd>Sub-pixel-dither super-resolution stacking; recovers detail finer than the native pixel grid at the cost of (1/D<sub>z</sub>) per-pixel SNR penalty and larger output. Effective pixel = pixel / D<sub>z</sub>.</dd>
+  <dt>Drizzle</dt><dd>Sub-pixel-dither super-resolution stacking (Fruchter &amp; Hook). Divides each input pixel across D<sub>z</sub>² output pixels, so per-output-pixel SNR falls by 1/D<sub>z</sub> and output size grows by D<sub>z</sub>². It only <i>recovers</i> real detail when the per-frame data is undersampled (&lt; ~1.4 px/FWHM) and dithered (dithering assumed present here); on already well- or over-sampled data it adds no resolution and only makes noise look smoother because the eye integrates over more, smaller pixels. Because the drizzle kernel spreads each photon across neighbouring output pixels, those pixels are noise-correlated: the independent per-pixel σ understates the true noise per resolution element, so the honest figure is the drizzle-invariant SNR/arcsec². Adds no photons — detection depth is unchanged.</dd>
   <dt>PSF FWHM (derived, arcsec)</dt><dd>The full width at half maximum of the <i>actual</i> convolved point-spread function. The component transfer functions (annular diffraction OTF × seeing Gaussian × guiding Gaussian) are multiplied, inverse-Hankel-transformed to the radial PSF, and the half-maximum radius solved by bisection. No quadrature approximation and no obstruction fudge factor. The single number that summarises how big a star will look.</dd>
   <dt>Sampling ratio (derived)</dt><dd>PSF FWHM / pixel scale, in pixels per FWHM. The verdict band is centred on the target Q = FWHM/1.6: <b>undersampled</b> if &lt; 1.4 (loses optical detail to coarse pixels), <b>oversampled</b> if &gt; 2.2 (spends SNR on frequencies the MTF has already destroyed), <b>well sampled</b> in between. Each system also displays its ideal ″/px (= FWHM/1.6) beside the actual. The same band and colours (red / green / gold) are used in every verdict readout app-wide.</dd>
   <dt>Operating temp (derived, °C)</dt><dd>Ambient + cooling delta. The silicon temperature used in the dark-current model.</dd>
@@ -5463,6 +5463,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     const filter = FILTERS[sys.filter];
     const eff_pixel_um = (sensor.pixel_um * sys.binning) / sys.drizzle;
     const pixel_scale = (eff_pixel_um / sys.focal_length_mm) * 206.265; // arcsec/px
+    // Per-frame (pre-drizzle) plate scale: what one un-reconstructed sub samples.
+    const perframe_pixel_scale = (sensor.pixel_um * sys.binning / sys.focal_length_mm) * 206.265;
     
     // FOV in arcmin (after binning, the chip is unchanged but sampling differs)
     const fov_w_arcmin = (sensor.width_mm / sys.focal_length_mm) * 3437.75;
@@ -5646,7 +5648,30 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // (and FPN, which scales with target signal) change with the brightness fraction.
     const fpn_frac = 0.001; // v982: real-world imperfections scaled to 20%
     const dither_groups = Math.max(1, sub_count / 5);
+    // ---------------------------------------------------------------------
+    // v994: honest drizzle model. Drizzle divides each input pixel's photons
+    // across drizzle^2 output pixels, so the naive per-output-pixel SNR falls
+    // by 1/drizzle (linear) / 1/drizzle^2 (variance). That part is real. But two
+    // things the old model ignored:
+    //  (a) RESOLUTION is only *recovered* when the source is genuinely under-
+    //      sampled (per-frame < ~1.4 px/FWHM) and dithered. Dithering is assumed
+    //      present here. On already-critically/oversampled data, drizzle onto a
+    //      finer grid adds NO real detail -- it only makes noise look smoother
+    //      because the eye integrates over more, smaller pixels (SNR/arcsec^2 is
+    //      unchanged either way). So we gate the "recovered" flag on the per-frame
+    //      sampling, not the drizzled grid.
+    //  (b) NOISE CORRELATION: the drizzle kernel spreads one input photon over
+    //      neighbouring output pixels, so adjacent output pixels share noise. The
+    //      independent per-output-pixel sigma therefore UNDERSTATES the effective
+    //      noise. We do not repair the per-pixel number (kept for continuity with
+    //      the display) but expose the correlated flag so the UI can say the honest
+    //      figure is the noise per native resolution element -- which is exactly
+    //      the drizzle-invariant SNR/arcsec^2 already reported.
+    const perframe_fwhm_px = psf_fwhm_arcsec / perframe_pixel_scale;
+    const drizzle_active = sys.drizzle > 1.01;
+    const drizzle_recovers = drizzle_active && perframe_fwhm_px < 1.4; // undersampled + dithered
     const drizzle_snr_factor = 1 / sys.drizzle;
+    const drizzle_noise_correlated = drizzle_active; // output pixels share kernel-spread photons
     
     function snrAtFraction(frac) {
       const Sf = S * frac;
@@ -5815,6 +5840,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       noise_breakdown_faint: snrFaint.noise_breakdown,
       snr,
       snr_drizzled,
+      drizzle_active, drizzle_recovers, drizzle_noise_correlated,
+      perframe_fwhm_px, perframe_pixel_scale,
       // Three-level SNR readings (each is the per-pixel SNR at that brightness fraction)
       snr_bright: snrBright.snr,
       snr_medium: snrMedium.snr,
@@ -9739,7 +9766,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // explains why "equal brightness" didn't equalize Jupiter properly: with two
     // different t.broadband values, the actual:peakRate ratio differed between
     // jupiter and moon, so the same stretch math gave different visual peaks.
-    const peakRate = Math.max(d.S, 0.01);
+    // v996: the display stretch normalizes off peakRate, so it must track the SAME
+    // per-pixel electron scale the render now uses (v995 divided the render means by
+    // drizzle²). Without this the white point sits drizzle² above every pixel and the
+    // drizzled panel maps ~9× too dark. Same surface brightness, spread over more
+    // pixels → the anchor scales down with the pixel area, exactly like the pixels.
+    const _drizzleAreaFactorR = 1 / ((sys.drizzle || 1) * (sys.drizzle || 1));
+    const peakRate = Math.max(d.S, 0.01) * _drizzleAreaFactorR;
     
     // v300: sensor is always OSC (one-shot color). Bayer pattern 2×2 = 1R + 2G + 1B.
     // Every target — narrowband or broadband — goes through the same per-channel
@@ -9783,13 +9816,28 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // reflection nebula) where the per-channel Poisson dominates render time.
     const t_seconds = total_time;
     const binA = d.bin_area;
+    // v995 CRITICAL FIX: the render buffer is the cam buffer at the effective
+    // (drizzle-aware) plate scale d.pixel_scale = native·binning/drizzle, so it
+    // has drizzle^2 MORE pixels, each covering 1/drizzle^2 of the sky area. The
+    // per-pixel electron means (signal, sky, dark) must therefore be divided by
+    // drizzle^2 — a finer pixel physically collects proportionally fewer photons.
+    // Before v995 they carried only bin_area, so every drizzled output pixel was
+    // painted with the FULL native-pixel photon count: a 3x drizzle silently gave
+    // each of 9 pixels the whole flux (9x total photons), lifting per-pixel SNR by
+    // sqrt(9)=3 and mimicking a bigger aperture / darker sky. Poisson(mean/D^2) has
+    // sigma/D, so this restores the correct per-pixel shot noise and an IDENTICAL
+    // background noise floor per unit sky area, drizzled or not.
+    // NB: star-peak normalization uses native_pixel_scale separately (see the
+    // Moffat peak note) and is unaffected; read noise is per readout pixel and is
+    // NOT area-scaled here (it already carries bin via Nr_eff).
+    const drizzleAreaFactor = 1 / (sys.drizzle * sys.drizzle);
     
     // Pre-compute scalar means and σ's (no per-pixel branching for these)
-    const skyMean = d.sky_rate * d.bin_area * total_time;
+    const skyMean = d.sky_rate * d.bin_area * drizzleAreaFactor * total_time;
     const skyMean_ha   = skyMean * bayer_ha;
     const skyMean_oiii = skyMean * bayer_oiii;
     const skyMean_bb   = skyMean * bayer_bb;
-    const darkMean = d.dark_rate * d.bin_area * total_time;
+    const darkMean = d.dark_rate * d.bin_area * drizzleAreaFactor * total_time;
     const darkMean_ha   = darkMean * bayer_ha;
     const darkMean_oiii = darkMean * bayer_oiii;
     const darkMean_bb   = darkMean * bayer_bb;
@@ -9835,9 +9883,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     const isPlanetLocal = isPlanet;
     const perSubScale = isPlanetLocal ? Math.min(sys.sub_length, 0.5) : 0;
     const totalSubs   = isPlanetLocal ? Math.max(1, t_seconds / perSubScale) : 0;
-    const sigCoefH = d.signal_rate_ha   * binA * bayer_ha;
-    const sigCoefO = d.signal_rate_oiii * binA * bayer_oiii;
-    const sigCoefB = d.signal_rate_bb   * binA * bayer_bb;
+    const sigCoefH = d.signal_rate_ha   * binA * drizzleAreaFactor * bayer_ha;
+    const sigCoefO = d.signal_rate_oiii * binA * drizzleAreaFactor * bayer_oiii;
+    const sigCoefB = d.signal_rate_bb   * binA * drizzleAreaFactor * bayer_bb;
     const fullWell = d.full_well;
     const n = electrons.length;
     
@@ -12460,8 +12508,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
           // Use per-system actual signal rate (d.S = signal_rate × bin_area)
           // which is what the v300 noise pipeline produces — keeps the stretch
           // anchor consistent with the electrons map.
-          const planetPeakA = Math.max(dA.S, 0.01) * dA.total_time_s;
-          const planetPeakB = Math.max(dB.S, 0.01) * dB.total_time_s;
+          const _drAP = 1 / ((sysA.drizzle || 1) * (sysA.drizzle || 1));
+          const _drBP = 1 / ((sysB.drizzle || 1) * (sysB.drizzle || 1));
+          const planetPeakA = Math.max(dA.S, 0.01) * _drAP * dA.total_time_s;
+          const planetPeakB = Math.max(dB.S, 0.01) * _drBP * dB.total_time_s;
           // v324: jupiter_realistic uses the same heavy 187.5 multiplier here
           // as in the renderImage equal-mode path, so toggling to "shared"
           // mode doesn't suddenly brighten the disc back up.
@@ -12475,8 +12525,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         if (stretchMode === "equal") {
           sharedStretch = -1;  // equal brightness - per-system target peak
         } else {
-          const peakRateA = Math.max(dA.S, 0.01);
-          const peakRateB = Math.max(dB.S, 0.01);
+          // v996: match the render's per-pixel drizzle² area scaling (see renderImage),
+          // so the shared white point tracks the drizzled pixel level too.
+          const _drA = 1 / ((sysA.drizzle || 1) * (sysA.drizzle || 1));
+          const _drB = 1 / ((sysB.drizzle || 1) * (sysB.drizzle || 1));
+          const peakRateA = Math.max(dA.S, 0.01) * _drA;
+          const peakRateB = Math.max(dB.S, 0.01) * _drB;
           const peakSigA = peakRateA * dA.total_time_s;
           const peakSigB = peakRateB * dB.total_time_s;
           // v327: emission uses 5.0 here too (matches the renderImage
@@ -14880,6 +14934,19 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             <span style={{ color: "#d4a437" }}> Bright</span> = target peak (e.g., nebula core, galaxy bulge) · 
             <span style={{ color: "#9aa5bb" }}> Medium</span> = 30% of peak (typical visible body) · 
             <span style={{ color: "#6a7894" }}> Faint</span> = 5% of peak (outer halo, tidal tails, faint filaments)
+            {(dA.drizzle_active || dB.drizzle_active) && (
+              <span style={{ color: "#c98a4f", display: "block", marginTop: 4 }}>
+                Drizzle note: the per-pixel σ below is the <i>independent</i> per-output-pixel value. Drizzle spreads each
+                photon across neighbouring output pixels, so adjacent pixels are noise-correlated and the true noise per
+                native resolution element is higher than σ/drizzle implies — the honest, drizzle-invariant figure is
+                SNR/arcsec². {" "}
+                {[["A", dA], ["B", dB]].filter(([_, d]) => d.drizzle_active).map(([lab, d]) =>
+                  d.drizzle_recovers
+                    ? `${lab}: source undersampled → drizzle recovers real detail.`
+                    : `${lab}: source already well/oversampled → drizzle adds no resolution, only a smoother look.`
+                ).join(" ")}
+              </span>
+            )}
             {samplingViewMode !== "native" && (
               <span style={{ color: "#d4a437", display: "block", marginTop: 4 }}>
                 Matched view (higher px scale) — SNR, σ and the noise breakdown show DISPLAY values at the coarser grid.
