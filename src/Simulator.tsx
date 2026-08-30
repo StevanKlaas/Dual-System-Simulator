@@ -1288,8 +1288,8 @@ function fwhmFromMTF(aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_sc
   return nu_half > 0 ? FWHM_FROM_NU_HALF / nu_half : 0;
 }
 
-const SIM_VERSION = "v997";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v997 \u2014 Rewrote the \u201cDetected % of target\u201d ? popover in plainer language: the 3\u03c3-per-arcsec\u00b2 idea, why the metric is per-arcsec\u00b2 rather than per-pixel (binning/drizzle can\u2019t inflate it), and the two flavours reported (extended detection % at 3\u03c3 and point-source m_lim at 5\u03c3).\n\n\u2022 v996 \u2014 Follow-up to v995: the display stretch anchor (peakRate) now also scales by 1/drizzle\u00b2, in both the per-system equal-brightness path and the shared-stretch path. v995 correctly lowered each drizzled pixel to its 1/drizzle\u00b2 photon share, but the white point still referenced the native peak, so the drizzled panel rendered ~9\u00d7 too dark. Anchor and pixels now share the same per-pixel scale \u2014 equal-brightness matching holds, and drizzled vs non-drizzled differ only in real noise/sampling, not overall brightness.\n\n\u2022 v995 \u2014 Critical drizzle render fix. The synthetic image painted each drizzled output pixel with the full native-pixel photon count instead of its 1/drizzle\u00b2 share, so a 3\u00d7 drizzle gave every one of 9 pixels the whole flux \u2014 effectively 9\u00d7 the photons, lifting per-pixel SNR by \u00d73 and faking a bigger-aperture / darker-sky look (smoother background, faint arms and clusters climbing out of the noise). The electron means (signal, sky, dark) now divide by drizzle\u00b2, giving each finer pixel its correct photon share and an identical background noise floor per unit sky area whether drizzled or not. Star-peak normalization (native scale) and read noise (per readout pixel) unaffected. This is the render-side counterpart to the v994 statistics fix.\n\n\u2022 v994 \u2014 Honest drizzle model. Drizzle still divides photons across D\u00b2 output pixels (per-pixel SNR \u00d71/D), but it is now only credited with *recovering* detail when the per-frame data is undersampled (< ~1.4 px/FWHM) and dithered (assumed present) \u2014 on well/over-sampled data it adds no resolution, only a smoother look from the eye integrating over more pixels. And because the drizzle kernel spreads each photon across neighbouring output pixels, the per-pixel \u03c3 is flagged as noise-correlated (it understates the true noise per resolution element); the honest, drizzle-invariant figure is SNR/arcsec\u00b2. A per-system verdict now states which case applies.\n\n\u2022 v993 \u2014 Fixed point-source m_lim improving ~0.75 mag per binning step: the background variance used native sky/dark rates while read noise was binned and the aperture shrank as 1/bin_area. Now uses binned rates \u2014 m_lim is exactly binning-invariant.\n\n\u2022 v992 \u2014 Documentation swept for the retired PSF model (\u00a72.2/2.6/2.8/3.3, analysis table, in-app caption): all now describe the exact convolved-profile FWHM with the Hankel equation; Image FWHM readouts use the exact delivered value.\n\n\u2022 v991 \u2014 PSF FWHM measured EXACTLY on the convolved profile (OTF product \u2192 inverse Hankel \u2192 half-maximum). Corrects the v990 MTF=\u00bd crossing (~10% wide) and removes the obstruction fudge constant. Verified to ~0.1%.\n\n\u2022 v989 \u2014 System B default is a real instrument (Celestron Origin 152 mm f/2.2, 41% obstruction); sampling verdict re-centred on Q = FWHM/1.6 (bands 1.4\u20132.2), target \u2033/px shown.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide as a modal (gold header button).\n\n\u2022 v984\u2013v987 \u2014 Procedural Reflection Nebula (Faint): wide field, spread illuminators, IFN cirrus, veiled illuminator, organic dust with dark lanes.\n\n\u2022 v980\u2013v983 \u2014 Realism-imperfection strengths retuned; upload blur edge reverted to clamp; IMX415 sensor added.\n\n\u2022 v960\u2013v979 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric; GPU galaxy path removed; dual PNG/GIF flash export; boot-splash fix; Whites slider.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history.";
+const SIM_VERSION = "v1001";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v1001 \u2014 OS08B10: pixel size and sensor dimensions set to match the ASI585 (2.9 \u00b5m, 11.1\u00d76.3 mm, 1/1.2\u2033), peak QE 84%.\n\n\u2022 v1000 \u2014 Added the OmniVision OS08B10 sensor (Seestar S50 Pro): read noise 0.86 e\u207b, full well 2809 e\u207b, dark current matched to the ASI585.\n\n\u2022 v999 \u2014 Region probe (interactive). A draggable, resizable disc over the A/B (and flash) canvases measures SNR and its noise components for the enclosed sky region: per-pixel SNR (mean & median), SNR/arcsec\u00b2 with \u00d7N vs the other system, and region-mean sky/dark/read/signal-shot noise in electrons. Gated to Match-zoom (both panels share a pixel scale, so one disc probes the identical sky region in A and B); the same disc persists across the Flash A/B blink. Drizzled regions carry the noise-correlation caveat. Built on the v998 regionStats math (validated to reproduce the point-probe SNR).\n\n\u2022 v998 \u2014 Region-probe math layer (data only; UI next): each derived system exposes regionStats(fractions) that reuses the per-pixel noise model over an arbitrary set of enclosed pixels and returns mean & median per-pixel SNR, SNR/arcsec\u00b2, region-mean noise components (sky/dark/read/FPN/signal), and a correlated flag for drizzled data. Validated that a full-frame region reproduces the point-probe SNR.\n\n\u2022 v997 \u2014 Rewrote the \u201cDetected % of target\u201d ? popover in plainer language: the 3\u03c3-per-arcsec\u00b2 idea, why the metric is per-arcsec\u00b2 rather than per-pixel (binning/drizzle can\u2019t inflate it), and the two flavours reported (extended detection % at 3\u03c3 and point-source m_lim at 5\u03c3).\n\n\u2022 v996 \u2014 Follow-up to v995: the display stretch anchor (peakRate) now also scales by 1/drizzle\u00b2, in both the per-system equal-brightness path and the shared-stretch path. v995 correctly lowered each drizzled pixel to its 1/drizzle\u00b2 photon share, but the white point still referenced the native peak, so the drizzled panel rendered ~9\u00d7 too dark. Anchor and pixels now share the same per-pixel scale \u2014 equal-brightness matching holds, and drizzled vs non-drizzled differ only in real noise/sampling, not overall brightness.\n\n\u2022 v995 \u2014 Critical drizzle render fix. The synthetic image painted each drizzled output pixel with the full native-pixel photon count instead of its 1/drizzle\u00b2 share, so a 3\u00d7 drizzle gave every one of 9 pixels the whole flux \u2014 effectively 9\u00d7 the photons, lifting per-pixel SNR by \u00d73 and faking a bigger-aperture / darker-sky look (smoother background, faint arms and clusters climbing out of the noise). The electron means (signal, sky, dark) now divide by drizzle\u00b2, giving each finer pixel its correct photon share and an identical background noise floor per unit sky area whether drizzled or not. Star-peak normalization (native scale) and read noise (per readout pixel) unaffected. This is the render-side counterpart to the v994 statistics fix.\n\n\u2022 v994 \u2014 Honest drizzle model. Drizzle still divides photons across D\u00b2 output pixels (per-pixel SNR \u00d71/D), but it is now only credited with *recovering* detail when the per-frame data is undersampled (< ~1.4 px/FWHM) and dithered (assumed present) \u2014 on well/over-sampled data it adds no resolution, only a smoother look from the eye integrating over more pixels. And because the drizzle kernel spreads each photon across neighbouring output pixels, the per-pixel \u03c3 is flagged as noise-correlated (it understates the true noise per resolution element); the honest, drizzle-invariant figure is SNR/arcsec\u00b2. A per-system verdict now states which case applies.\n\n\u2022 v993 \u2014 Fixed point-source m_lim improving ~0.75 mag per binning step: the background variance used native sky/dark rates while read noise was binned and the aperture shrank as 1/bin_area. Now uses binned rates \u2014 m_lim is exactly binning-invariant.\n\n\u2022 v992 \u2014 Documentation swept for the retired PSF model (\u00a72.2/2.6/2.8/3.3, analysis table, in-app caption): all now describe the exact convolved-profile FWHM with the Hankel equation; Image FWHM readouts use the exact delivered value.\n\n\u2022 v991 \u2014 PSF FWHM measured EXACTLY on the convolved profile (OTF product \u2192 inverse Hankel \u2192 half-maximum). Corrects the v990 MTF=\u00bd crossing (~10% wide) and removes the obstruction fudge constant. Verified to ~0.1%.\n\n\u2022 v989 \u2014 System B default is a real instrument (Celestron Origin 152 mm f/2.2, 41% obstruction); sampling verdict re-centred on Q = FWHM/1.6 (bands 1.4\u20132.2), target \u2033/px shown.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide as a modal (gold header button).\n\n\u2022 v984\u2013v987 \u2014 Procedural Reflection Nebula (Faint): wide field, spread illuminators, IFN cirrus, veiled illuminator, organic dust with dark lanes.\n\n\u2022 v980\u2013v983 \u2014 Realism-imperfection strengths retuned; upload blur edge reverted to clamp; IMX415 sensor added.\n\n\u2022 v960\u2013v979 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric; GPU galaxy path removed; dual PNG/GIF flash export; boot-splash fix; Whites slider.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -1299,7 +1299,7 @@ const SIM_VERSION = "v997";
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v997</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v1001</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -1834,6 +1834,23 @@ const SIM_VERSION = "v997";
       doubling_C: 4.9,
       hcg_full_well: 2500,
       hcg_gain: 200,
+    },
+    os08b10: {
+      name: "OmniVision OS08B10 — S50 Pro",
+      pixel_um: 2.9,
+      width_px: 3840, height_px: 2160,
+      width_mm: 11.1, height_mm: 6.3,
+      format: "1/1.2\"",
+      adc_bits: 12,
+      qe_peak: 0.84,
+      read_noise_hcg: 0.86,
+      full_well: 2809,
+      // dark current matched to the ASI585 (IMX585) per spec request
+      dark_0c: 0.00687,
+      doubling_C: 4.9,
+      // no separate HCG stage modelled; single conversion gain
+      hcg_full_well: 2809,
+      hcg_gain: 100,
     },
     asi533: {
       name: "ASI533 (IMX533)",
@@ -5340,6 +5357,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   // (i.e., inputs have been touched since last render) and "RENDERED" (green) when
   // they match. Initial mount auto-renders once.
   const [renderToken, setRenderToken] = useState(0);
+  const [renderDone, setRenderDone] = useState(0); // v999: bumped after canvases paint, triggers disc recompute
   const [lastRenderedSig, setLastRenderedSig] = useState(null);
 
   // v903: transient toast for one-shot notifications (currently used when
@@ -5729,6 +5747,47 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       };
     }
     
+    // v998: region-probe math. Given a set of per-pixel signal FRACTIONS (each
+    // pixel's blurred signal / map peak) inside a user disc, reuse snrAtFraction
+    // per pixel and aggregate. Per-pixel SNR is reported as mean and median over
+    // the region; SNR/arcsec² divides the mean per-pixel SNR by the effective
+    // pixel scale (scale-free, binning/drizzle-invariant); noise components are
+    // region-mean electrons. `correlated` flags drizzled data where the naive
+    // per-pixel independence assumption understates true region noise.
+    function regionStats(fractions) {
+      const n = fractions.length;
+      if (!n) return null;
+      const snrs = new Float64Array(n);
+      let cmp = { signal:0, sky:0, dark:0, read:0, fpn:0, bg_resid:0, gradient:0, total:0 };
+      let sigSum = 0;
+      for (let i = 0; i < n; i++) {
+        const r = snrAtFraction(Math.max(0, fractions[i]));
+        snrs[i] = r.snr;
+        sigSum += r.sig_total;
+        const b = r.noise_breakdown;
+        cmp.signal += b.signal; cmp.sky += b.sky; cmp.dark += b.dark;
+        cmp.read += b.read; cmp.fpn += b.fpn; cmp.bg_resid += b.bg_resid;
+        cmp.gradient += b.gradient; cmp.total += b.total;
+      }
+      for (const k in cmp) cmp[k] /= n;                 // region-mean components (e-)
+      let meanSnr = 0; for (let i=0;i<n;i++) meanSnr += snrs[i]; meanSnr /= n;
+      const sorted = Array.from(snrs).sort((a,b)=>a-b);
+      const medSnr = n % 2 ? sorted[(n-1)>>1] : 0.5*(sorted[n/2-1]+sorted[n/2]);
+      const meanFrac = fractions.reduce((s,v)=>s+v,0)/n;
+      return {
+        n_pixels: n,
+        snr_perpix_mean: meanSnr,
+        snr_perpix_median: medSnr,
+        snr_per_arcsec2_mean: meanSnr / pixel_scale,     // ÷ ″/px  → per-arcsec² (scale-free)
+        snr_per_arcsec2_median: medSnr / pixel_scale,
+        mean_fraction: meanFrac,
+        mean_signal_e: sigSum / n,
+        components_e: cmp,                                // region-mean noise, electrons
+        correlated: drizzle_active,                       // √N region combine is optimistic if true
+        pixel_scale,
+      };
+    }
+
     // Three reference brightness levels:
     //   bright: peak signal (the target's brightest pixel)
     //   medium: 30% of peak (typical visible target body, nebula bulk, galaxy disk)
@@ -5842,6 +5901,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       snr_drizzled,
       drizzle_active, drizzle_recovers, drizzle_noise_correlated,
       perframe_fwhm_px, perframe_pixel_scale,
+      regionStats,
       // Three-level SNR readings (each is the per-pixel SNR at that brightness fraction)
       snr_bright: snrBright.snr,
       snr_medium: snrMedium.snr,
@@ -11573,6 +11633,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       for (let i = 0; i < probeMap.length; i++) {
         if (probeMap[i] > mapPeak) mapPeak = probeMap[i];
       }
+      // v999: stash the (blurred) signal map + peak so the interactive region
+      // disc can build per-pixel fraction lists at canvas resolution. Keyed by
+      // system accent colour (A gold / B teal).
+      try {
+        const _rk = (selfColor === "#5fb3a1") ? "B" : "A";
+        regionMapRef.current[_rk] = { map: probeMap, peak: mapPeak, RW, RH };
+      } catch (e) { /* ref not ready */ }
       
       if (mapPeak > 0) {
         // Probe levels: bright=peak, medium=30%, faint=5%
@@ -12028,6 +12095,16 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   
   const canvasARef = useRef(null);
   const canvasBRef = useRef(null);
+  // (region refs declared just below)
+  // v999: region-probe disc. regionMapRef holds each system's blurred signal map
+  // (canvas res) for on-demand fraction sampling. Disc is in NATIVE canvas coords
+  // (0..RW, 0..RH); matchZoom guarantees the same sky maps to the same coords in
+  // both panels, so one disc probes the identical sky region in A and B.
+  const regionMapRef = useRef({ A: null, B: null });
+  const [discOn, setDiscOn] = useState(false);
+  const [disc, setDisc] = useState({ x: 640, y: 400, r: 90 }); // native canvas px
+  const [discStats, setDiscStats] = useState(null);
+  const discDragRef = useRef(null);
 
   // v929: image compare mode. "sidebyside" (classic) or "flash" (one full-width
   // pane, toggled A↔B by button/spacebar/auto-blink for blink-comparator change
@@ -12039,6 +12116,92 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   const [flashShow, setFlashShow] = useState("A");
   const [flashAuto, setFlashAuto] = useState(false);
   const flashCanvasRef = useRef(null);
+
+  // v999: recompute region stats from the stashed maps for the current disc.
+  const computeDiscStats = useCallback(() => {
+    if (!discOn) { setDiscStats(null); return; }
+    const mk = (which, d) => {
+      const rm = regionMapRef.current[which];
+      if (!rm || !rm.map || !(rm.peak > 0) || !d || !d.regionStats) return null;
+      const { map, peak, RW: mw, RH: mh } = rm;
+      const cx = disc.x, cy = disc.y, r2 = disc.r * disc.r;
+      const fr = [];
+      const x0 = Math.max(0, Math.floor(cx - disc.r)), x1 = Math.min(mw - 1, Math.ceil(cx + disc.r));
+      const y0 = Math.max(0, Math.floor(cy - disc.r)), y1 = Math.min(mh - 1, Math.ceil(cy + disc.r));
+      for (let y = y0; y <= y1; y++) {
+        const dy = y - cy;
+        for (let x = x0; x <= x1; x++) {
+          const dx = x - cx;
+          if (dx * dx + dy * dy <= r2) fr.push(map[y * mw + x] / peak);
+        }
+      }
+      if (!fr.length) return null;
+      return d.regionStats(fr);
+    };
+    setDiscStats({ A: mk("A", dA), B: mk("B", dB) });
+  }, [discOn, disc, dA, dB]);
+
+  useEffect(() => { computeDiscStats(); }, [computeDiscStats, renderDone]);
+
+  // v999: draggable region disc overlay (SVG) sized in native RW×RH coords but
+  // rendered over a CSS-scaled canvas. Pointer coords are converted via the
+  // element's bounding box. Body-drag moves the centre; ring-drag resizes.
+  const discPointer = useCallback((e, mode) => {
+    e.preventDefault(); e.stopPropagation();
+    const svg = e.currentTarget.ownerSVGElement || e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const toNative = (cx, cy) => ({
+      x: (cx - rect.left) / rect.width * RW,
+      y: (cy - rect.top) / rect.height * RH,
+    });
+    discDragRef.current = { mode };
+    const move = (ev) => {
+      const p = ev.touches ? ev.touches[0] : ev;
+      const n = toNative(p.clientX, p.clientY);
+      setDisc(prev => {
+        if (discDragRef.current?.mode === "resize") {
+          const dx = n.x - prev.x, dy = n.y - prev.y;
+          return { ...prev, r: Math.max(12, Math.min(Math.hypot(dx, dy), RW * 0.5)) };
+        }
+        return {
+          ...prev,
+          x: Math.max(0, Math.min(RW, n.x)),
+          y: Math.max(0, Math.min(RH, n.y)),
+        };
+      });
+    };
+    const up = () => {
+      discDragRef.current = null;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("touchmove", move);
+      window.removeEventListener("touchend", up);
+      computeDiscStats();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("touchmove", move, { passive: false });
+    window.addEventListener("touchend", up);
+  }, [computeDiscStats]);
+
+  const DiscOverlay = useCallback(({ accent }) => {
+    if (!discOn || !matchZoom) return null;
+    return (
+      <svg viewBox={`0 0 ${RW} ${RH}`} preserveAspectRatio="none"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 5, touchAction: "none" }}>
+        <circle cx={disc.x} cy={disc.y} r={disc.r} fill="rgba(255,255,255,0.04)"
+          stroke={accent} strokeWidth={2} vectorEffect="non-scaling-stroke"
+          style={{ cursor: "move" }}
+          onPointerDown={(e) => discPointer(e, "move")}
+          onTouchStart={(e) => discPointer(e, "move")} />
+        <circle cx={disc.x + disc.r * 0.707} cy={disc.y - disc.r * 0.707} r={7}
+          fill={accent} stroke="#0a1020" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+          style={{ cursor: "nwse-resize" }}
+          onPointerDown={(e) => discPointer(e, "resize")}
+          onTouchStart={(e) => discPointer(e, "resize")} />
+      </svg>
+    );
+  }, [discOn, matchZoom, disc, discPointer]);
 
   // Blit the active source canvas into the flash canvas (1:1, CSS scales it).
   const paintFlash = useCallback(() => {
@@ -12695,6 +12858,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         // Render button can show "RENDERED" green until something changes.
         setLastRenderedSig(currentRenderSig);
       }
+      // v999: signal the region-disc to re-read the freshly stashed maps.
+      if (!cancelled) setRenderDone(v => v + 1);
     };
     // 30 ms defer (gallery pattern) — long enough for the browser to paint the indicator,
     // short enough to feel instant.
@@ -14628,6 +14793,72 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               </>
             )}
           </div>
+          {/* v999: region-probe disc toggle + readout (matchZoom only) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+            <button onClick={() => { if (matchZoom) setDiscOn(v => !v); }}
+              disabled={!matchZoom}
+              title={matchZoom ? "Measure SNR + noise inside a draggable disc" : "Enable Match zoom to use the region probe (both panels must share a pixel scale)"}
+              style={{ background: discOn && matchZoom ? "#5fb3a1" : "rgba(10,16,28,0.6)",
+                color: discOn && matchZoom ? "#0a1020" : (matchZoom ? "#9aa5bb" : "#4a5568"),
+                border: `1px solid ${discOn && matchZoom ? "#5fb3a1" : "rgba(96,116,156,0.3)"}`,
+                padding: "5px 14px", fontFamily: "JetBrains Mono, monospace", fontSize: 11,
+                cursor: matchZoom ? "pointer" : "not-allowed", borderRadius: 2, fontWeight: discOn ? 600 : 400 }}>
+              ◎ Region probe {discOn && matchZoom ? "on" : "off"}
+            </button>
+            {!matchZoom && (
+              <span style={{ fontSize: 9.5, color: "#6a7894", fontStyle: "italic" }}>
+                needs Match zoom — the disc must cover the same sky in A and B
+              </span>
+            )}
+            {discOn && matchZoom && (
+              <span style={{ fontSize: 9.5, color: "#6a7894" }}>
+                drag the ring to move · drag the handle to resize · {discStats?.A ? `${discStats.A.n_pixels} px` : "—"} · {(disc.r * 2 * (dA.pixel_scale || 0)).toFixed(0)}″ across
+              </span>
+            )}
+          </div>
+          {discOn && matchZoom && discStats && (discStats.A || discStats.B) && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12,
+              padding: "10px 12px", background: "rgba(10,16,28,0.5)", border: "1px solid rgba(96,116,156,0.25)", borderRadius: 3 }}>
+              {[["A", "#d4a437", discStats.A, discStats.B], ["B", "#5fb3a1", discStats.B, discStats.A]].map(([lab, col, s, o]) => (
+                <div key={lab}>
+                  <div style={{ color: col, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
+                    System {lab} · region SNR
+                  </div>
+                  {!s ? <div style={{ color: "#6a7894", fontSize: 10 }}>render to measure</div> : (() => {
+                    const ratio = (o && o.snr_per_arcsec2_mean > 0) ? s.snr_per_arcsec2_mean / o.snr_per_arcsec2_mean : null;
+                    const row = (k, v, extra) => (
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "1.5px 0" }}>
+                        <span style={{ color: "#8b96a8" }}>{k}</span>
+                        <span style={{ color: "#c8d0dc" }}>{v}{extra}</span>
+                      </div>
+                    );
+                    const c = s.components_e;
+                    return (
+                      <div>
+                        {row("per-pixel SNR (mean)", s.snr_perpix_mean.toFixed(1))}
+                        {row("per-pixel SNR (median)", s.snr_perpix_median.toFixed(1))}
+                        {row("SNR / arcsec² (mean)", s.snr_per_arcsec2_mean.toFixed(1),
+                          ratio ? <span style={{ color: col, marginLeft: 6 }}>×{ratio.toFixed(2)} vs {lab === "A" ? "B" : "A"}</span> : null)}
+                        <div style={{ borderTop: "1px solid rgba(96,116,156,0.2)", margin: "5px 0", paddingTop: 4 }}>
+                          <div style={{ fontSize: 9, color: "#6a7894", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>region-mean noise · e⁻</div>
+                          {row("sky", c.sky.toFixed(1))}
+                          {row("dark", c.dark.toFixed(1))}
+                          {row("read", c.read.toFixed(1))}
+                          {row("signal shot", c.signal.toFixed(1))}
+                          {row("total", c.total.toFixed(1))}
+                        </div>
+                        {s.correlated && (
+                          <div style={{ fontSize: 9, color: "#c98a4f", marginTop: 4, lineHeight: 1.4 }}>
+                            drizzled: output pixels are noise-correlated — per-pixel σ understates true region noise; trust SNR/arcsec².
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
           {compareMode === "flash" && !matchZoom && (
             <div style={{ marginBottom: 10, padding: "6px 10px", fontSize: 9.5, lineHeight: 1.5,
               color: "#d4a437", background: "rgba(212, 164, 55, 0.08)",
@@ -14656,6 +14887,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               <div style={{ border: "1px solid rgba(212, 164, 55, 0.25)", background: "#000", overflow: "hidden", borderRadius: 2, position: "relative" }}>
                 <canvas ref={canvasARef} width={RW} height={RH}
                   style={{ width: "100%", height: "auto", display: "block", opacity: rendering ? 0.78 : 1, transition: "opacity 0.15s", imageRendering: "auto" }} />
+                <DiscOverlay accent="#d4a437" />
                 {rendering && (
                   <div style={{
                     position: "absolute", left: 0, right: 0, top: "50%", transform: "translateY(-50%)",
@@ -14759,6 +14991,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               <div style={{ border: "1px solid rgba(95, 179, 161, 0.25)", background: "#000", overflow: "hidden", borderRadius: 2, position: "relative" }}>
                 <canvas ref={canvasBRef} width={RW} height={RH}
                   style={{ width: "100%", height: "auto", display: "block", opacity: rendering ? 0.78 : 1, transition: "opacity 0.15s", imageRendering: "auto" }} />
+                <DiscOverlay accent="#5fb3a1" />
                 {rendering && (
                   <div style={{
                     position: "absolute", left: 0, right: 0, top: "50%", transform: "translateY(-50%)",
@@ -14868,6 +15101,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 <div style={{ border: `1px solid ${color}40`, background: "#000", overflow: "hidden", borderRadius: 2, position: "relative" }}>
                   <canvas ref={flashCanvasRef} width={RW} height={RH}
                     style={{ width: "100%", height: "auto", display: "block", opacity: rendering ? 0.78 : 1, transition: "opacity 0.15s" }} />
+                  <DiscOverlay accent={flashShow === "A" ? "#d4a437" : "#5fb3a1"} />
                   <div style={{ position: "absolute", top: 8, left: 8, padding: "2px 12px", fontSize: 15, fontWeight: 700,
                     fontFamily: "JetBrains Mono, monospace", color: "#0a1020", background: color, borderRadius: 2, letterSpacing: "0.1em" }}>{flashShow}</div>
                   {rendering && (
