@@ -1288,8 +1288,8 @@ function fwhmFromMTF(aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_sc
   return nu_half > 0 ? FWHM_FROM_NU_HALF / nu_half : 0;
 }
 
-const SIM_VERSION = "v1007";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v1007 \u2014 Added the OmniVision OV50Q40 in native (unbinned) mode as \u201cDraco Planetary\u201d: 1.2 \u00b5m pixels, 8192\u00d76144. Read noise 1.4 e\u207b, full well 750 e\u207b and dark 0.00091 e\u207b/s/px at 0 \u00b0C, derived from the 2\u00d72-binned Draco DSO values assuming digital binning, so Draco Planetary at bin 2 reproduces Draco DSO. Sensor info line now shows sub-10k full wells to one decimal (was rounding 750 e\u207b to 1Ke).\n\n\u2022 v1006 \u2014 Added the OmniVision OV50Q40 sensor (Draco DSO): 2.4 \u00b5m pixels (2\u00d72-binned mode of the 50 MP chip, 4096\u00d73072, 1/1.3\u2033), read noise 2.8 e\u207b at HCG, full well 3000 e\u207b, dark current matched to the OS08B10. QE is a provisional 80% placeholder pending a measured value.\n\n\u2022 v1005 \u2014 Added the Draco Duo Band 13 nm (H\u03b1/OIII) filter: 13 nm on each line, transmission 0.90, continuum leak 0.078 (26 nm total passband, ~11.5\u00d7 sky suppression vs UV/IR cut). Sits between the 20/30 nm Duo-band and the 7 nm L-eXtreme in the dropdown, ordered by bandwidth.\n\n\u2022 v1004 \u2014 Added the L-Ultimate 3 nm/3 nm dual-band filter: H\u03b1 and OIII transmission 0.90, continuum leak 0.018 (6 nm total passband, ~50\u00d7 sky suppression vs UV/IR cut \u2014 the narrowest option, crushing the sky ~2.4\u00d7 harder than the 7 nm L-eXtreme).\n\n\u2022 v1003 \u2014 OS08B10 dark current corrected to its measured S50 Pro model I(T)=0.178\u00b72^((T\u221227.5)/4.90): dark_0c 0.00687 \u2192 0.00364 e\u207b/s/px (doubling 4.90 unchanged). The sensor runs ~1.9\u00d7 cooler than the ASI585, not equal to it \u2014 the earlier placeholder overstated its dark current ~2\u00d7. ASI585 dark model checked against its own measured curve and left unchanged (within ~6% across \u221220..30 \u00b0C).\n\n\u2022 v1002 \u2014 ASI585 read noise / full well corrected against a measured SharpCap gain table: HCG point is now the real gain-200 row (read noise 1.04 e\u207b, HCG full well 3794 e\u207b) instead of 0.7 e\u207b / 2500 e\u207b \u2014 the old 0.7 floor only exists at gain 600 where the well collapses to ~35 e\u207b (unusable), so it was flattering the sensor. Linear full well set to the measured 39369 e\u207b. OS08B10 values confirmed against its own measured table (gain 150: 0.86 e\u207b, 2809 e\u207b) \u2014 no change.\n\n\u2022 v1001 \u2014 OS08B10: pixel size and sensor dimensions set to match the ASI585 (2.9 \u00b5m, 11.1\u00d76.3 mm, 1/1.2\u2033), peak QE 84%.\n\n\u2022 v1000 \u2014 Added the OmniVision OS08B10 sensor (Seestar S50 Pro): read noise 0.86 e\u207b, full well 2809 e\u207b, dark current matched to the ASI585.\n\n\u2022 v999 \u2014 Region probe (interactive). A draggable, resizable disc over the A/B (and flash) canvases measures SNR and its noise components for the enclosed sky region: per-pixel SNR (mean & median), SNR/arcsec\u00b2 with \u00d7N vs the other system, and region-mean sky/dark/read/signal-shot noise in electrons. Gated to Match-zoom (both panels share a pixel scale, so one disc probes the identical sky region in A and B); the same disc persists across the Flash A/B blink. Drizzled regions carry the noise-correlation caveat. Built on the v998 regionStats math (validated to reproduce the point-probe SNR).\n\n\u2022 v998 \u2014 Region-probe math layer (data only; UI next): each derived system exposes regionStats(fractions) that reuses the per-pixel noise model over an arbitrary set of enclosed pixels and returns mean & median per-pixel SNR, SNR/arcsec\u00b2, region-mean noise components (sky/dark/read/FPN/signal), and a correlated flag for drizzled data. Validated that a full-frame region reproduces the point-probe SNR.\n\n\u2022 v997 \u2014 Rewrote the \u201cDetected % of target\u201d ? popover in plainer language: the 3\u03c3-per-arcsec\u00b2 idea, why the metric is per-arcsec\u00b2 rather than per-pixel (binning/drizzle can\u2019t inflate it), and the two flavours reported (extended detection % at 3\u03c3 and point-source m_lim at 5\u03c3).\n\n\u2022 v996 \u2014 Follow-up to v995: the display stretch anchor (peakRate) now also scales by 1/drizzle\u00b2, in both the per-system equal-brightness path and the shared-stretch path. v995 correctly lowered each drizzled pixel to its 1/drizzle\u00b2 photon share, but the white point still referenced the native peak, so the drizzled panel rendered ~9\u00d7 too dark. Anchor and pixels now share the same per-pixel scale \u2014 equal-brightness matching holds, and drizzled vs non-drizzled differ only in real noise/sampling, not overall brightness.\n\n\u2022 v995 \u2014 Critical drizzle render fix. The synthetic image painted each drizzled output pixel with the full native-pixel photon count instead of its 1/drizzle\u00b2 share, so a 3\u00d7 drizzle gave every one of 9 pixels the whole flux \u2014 effectively 9\u00d7 the photons, lifting per-pixel SNR by \u00d73 and faking a bigger-aperture / darker-sky look (smoother background, faint arms and clusters climbing out of the noise). The electron means (signal, sky, dark) now divide by drizzle\u00b2, giving each finer pixel its correct photon share and an identical background noise floor per unit sky area whether drizzled or not. Star-peak normalization (native scale) and read noise (per readout pixel) unaffected. This is the render-side counterpart to the v994 statistics fix.\n\n\u2022 v994 \u2014 Honest drizzle model. Drizzle still divides photons across D\u00b2 output pixels (per-pixel SNR \u00d71/D), but it is now only credited with *recovering* detail when the per-frame data is undersampled (< ~1.4 px/FWHM) and dithered (assumed present) \u2014 on well/over-sampled data it adds no resolution, only a smoother look from the eye integrating over more pixels. And because the drizzle kernel spreads each photon across neighbouring output pixels, the per-pixel \u03c3 is flagged as noise-correlated (it understates the true noise per resolution element); the honest, drizzle-invariant figure is SNR/arcsec\u00b2. A per-system verdict now states which case applies.\n\n\u2022 v993 \u2014 Fixed point-source m_lim improving ~0.75 mag per binning step: the background variance used native sky/dark rates while read noise was binned and the aperture shrank as 1/bin_area. Now uses binned rates \u2014 m_lim is exactly binning-invariant.\n\n\u2022 v992 \u2014 Documentation swept for the retired PSF model (\u00a72.2/2.6/2.8/3.3, analysis table, in-app caption): all now describe the exact convolved-profile FWHM with the Hankel equation; Image FWHM readouts use the exact delivered value.\n\n\u2022 v991 \u2014 PSF FWHM measured EXACTLY on the convolved profile (OTF product \u2192 inverse Hankel \u2192 half-maximum). Corrects the v990 MTF=\u00bd crossing (~10% wide) and removes the obstruction fudge constant. Verified to ~0.1%.\n\n\u2022 v989 \u2014 System B default is a real instrument (Celestron Origin 152 mm f/2.2, 41% obstruction); sampling verdict re-centred on Q = FWHM/1.6 (bands 1.4\u20132.2), target \u2033/px shown.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide as a modal (gold header button).\n\n\u2022 v984\u2013v987 \u2014 Procedural Reflection Nebula (Faint): wide field, spread illuminators, IFN cirrus, veiled illuminator, organic dust with dark lanes.\n\n\u2022 v980\u2013v983 \u2014 Realism-imperfection strengths retuned; upload blur edge reverted to clamp; IMX415 sensor added.\n\n\u2022 v960\u2013v979 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric; GPU galaxy path removed; dual PNG/GIF flash export; boot-splash fix; Whites slider.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history.";
+const SIM_VERSION = "v1008";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v1008 \u2014 Sampling view: \u201cNative\u201d renamed \u201cSame sky scale (averaged)\u201d (it box-averages a finer system onto the canvas), plus a new \u201cPer-pixel grain (1:1)\u201d mode that shows one sensor pixel per canvas pixel (nearest neighbour) so on-screen grain matches the per-pixel SNR panel, with a caption saying how many pixels are skipped. Region probe: added total signal in the disc (e\u207b), sensor pixels in the disc, SNR/arcsec\u00b2 median, and an A-vs-B / B-vs-A multiplier on every row; the disc\u2019s \u2033-across readout now uses the canvas scale (it used A\u2019s sensor pixel scale).\n\n\u2022 v1007 \u2014 Added the OmniVision OV50Q40 in native (unbinned) mode as \u201cDraco Planetary\u201d: 1.2 \u00b5m pixels, 8192\u00d76144. Read noise 1.4 e\u207b, full well 750 e\u207b and dark 0.00091 e\u207b/s/px at 0 \u00b0C, derived from the 2\u00d72-binned Draco DSO values assuming digital binning, so Draco Planetary at bin 2 reproduces Draco DSO. Sensor info line now shows sub-10k full wells to one decimal (was rounding 750 e\u207b to 1Ke).\n\n\u2022 v1006 \u2014 Added the OmniVision OV50Q40 sensor (Draco DSO): 2.4 \u00b5m pixels (2\u00d72-binned mode of the 50 MP chip, 4096\u00d73072, 1/1.3\u2033), read noise 2.8 e\u207b at HCG, full well 3000 e\u207b, dark current matched to the OS08B10. QE is a provisional 80% placeholder pending a measured value.\n\n\u2022 v1005 \u2014 Added the Draco Duo Band 13 nm (H\u03b1/OIII) filter: 13 nm on each line, transmission 0.90, continuum leak 0.078 (26 nm total passband, ~11.5\u00d7 sky suppression vs UV/IR cut). Sits between the 20/30 nm Duo-band and the 7 nm L-eXtreme in the dropdown, ordered by bandwidth.\n\n\u2022 v1004 \u2014 Added the L-Ultimate 3 nm/3 nm dual-band filter: H\u03b1 and OIII transmission 0.90, continuum leak 0.018 (6 nm total passband, ~50\u00d7 sky suppression vs UV/IR cut \u2014 the narrowest option, crushing the sky ~2.4\u00d7 harder than the 7 nm L-eXtreme).\n\n\u2022 v1003 \u2014 OS08B10 dark current corrected to its measured S50 Pro model I(T)=0.178\u00b72^((T\u221227.5)/4.90): dark_0c 0.00687 \u2192 0.00364 e\u207b/s/px (doubling 4.90 unchanged). The sensor runs ~1.9\u00d7 cooler than the ASI585, not equal to it \u2014 the earlier placeholder overstated its dark current ~2\u00d7. ASI585 dark model checked against its own measured curve and left unchanged (within ~6% across \u221220..30 \u00b0C).\n\n\u2022 v1002 \u2014 ASI585 read noise / full well corrected against a measured SharpCap gain table: HCG point is now the real gain-200 row (read noise 1.04 e\u207b, HCG full well 3794 e\u207b) instead of 0.7 e\u207b / 2500 e\u207b \u2014 the old 0.7 floor only exists at gain 600 where the well collapses to ~35 e\u207b (unusable), so it was flattering the sensor. Linear full well set to the measured 39369 e\u207b. OS08B10 values confirmed against its own measured table (gain 150: 0.86 e\u207b, 2809 e\u207b) \u2014 no change.\n\n\u2022 v1001 \u2014 OS08B10: pixel size and sensor dimensions set to match the ASI585 (2.9 \u00b5m, 11.1\u00d76.3 mm, 1/1.2\u2033), peak QE 84%.\n\n\u2022 v1000 \u2014 Added the OmniVision OS08B10 sensor (Seestar S50 Pro): read noise 0.86 e\u207b, full well 2809 e\u207b, dark current matched to the ASI585.\n\n\u2022 v999 \u2014 Region probe (interactive). A draggable, resizable disc over the A/B (and flash) canvases measures SNR and its noise components for the enclosed sky region: per-pixel SNR (mean & median), SNR/arcsec\u00b2 with \u00d7N vs the other system, and region-mean sky/dark/read/signal-shot noise in electrons. Gated to Match-zoom (both panels share a pixel scale, so one disc probes the identical sky region in A and B); the same disc persists across the Flash A/B blink. Drizzled regions carry the noise-correlation caveat. Built on the v998 regionStats math (validated to reproduce the point-probe SNR).\n\n\u2022 v998 \u2014 Region-probe math layer (data only; UI next): each derived system exposes regionStats(fractions) that reuses the per-pixel noise model over an arbitrary set of enclosed pixels and returns mean & median per-pixel SNR, SNR/arcsec\u00b2, region-mean noise components (sky/dark/read/FPN/signal), and a correlated flag for drizzled data. Validated that a full-frame region reproduces the point-probe SNR.\n\n\u2022 v997 \u2014 Rewrote the \u201cDetected % of target\u201d ? popover in plainer language: the 3\u03c3-per-arcsec\u00b2 idea, why the metric is per-arcsec\u00b2 rather than per-pixel (binning/drizzle can\u2019t inflate it), and the two flavours reported (extended detection % at 3\u03c3 and point-source m_lim at 5\u03c3).\n\n\u2022 v996 \u2014 Follow-up to v995: the display stretch anchor (peakRate) now also scales by 1/drizzle\u00b2, in both the per-system equal-brightness path and the shared-stretch path. v995 correctly lowered each drizzled pixel to its 1/drizzle\u00b2 photon share, but the white point still referenced the native peak, so the drizzled panel rendered ~9\u00d7 too dark. Anchor and pixels now share the same per-pixel scale \u2014 equal-brightness matching holds, and drizzled vs non-drizzled differ only in real noise/sampling, not overall brightness.\n\n\u2022 v995 \u2014 Critical drizzle render fix. The synthetic image painted each drizzled output pixel with the full native-pixel photon count instead of its 1/drizzle\u00b2 share, so a 3\u00d7 drizzle gave every one of 9 pixels the whole flux \u2014 effectively 9\u00d7 the photons, lifting per-pixel SNR by \u00d73 and faking a bigger-aperture / darker-sky look (smoother background, faint arms and clusters climbing out of the noise). The electron means (signal, sky, dark) now divide by drizzle\u00b2, giving each finer pixel its correct photon share and an identical background noise floor per unit sky area whether drizzled or not. Star-peak normalization (native scale) and read noise (per readout pixel) unaffected. This is the render-side counterpart to the v994 statistics fix.\n\n\u2022 v994 \u2014 Honest drizzle model. Drizzle still divides photons across D\u00b2 output pixels (per-pixel SNR \u00d71/D), but it is now only credited with *recovering* detail when the per-frame data is undersampled (< ~1.4 px/FWHM) and dithered (assumed present) \u2014 on well/over-sampled data it adds no resolution, only a smoother look from the eye integrating over more pixels. And because the drizzle kernel spreads each photon across neighbouring output pixels, the per-pixel \u03c3 is flagged as noise-correlated (it understates the true noise per resolution element); the honest, drizzle-invariant figure is SNR/arcsec\u00b2. A per-system verdict now states which case applies.\n\n\u2022 v993 \u2014 Fixed point-source m_lim improving ~0.75 mag per binning step: the background variance used native sky/dark rates while read noise was binned and the aperture shrank as 1/bin_area. Now uses binned rates \u2014 m_lim is exactly binning-invariant.\n\n\u2022 v992 \u2014 Documentation swept for the retired PSF model (\u00a72.2/2.6/2.8/3.3, analysis table, in-app caption): all now describe the exact convolved-profile FWHM with the Hankel equation; Image FWHM readouts use the exact delivered value.\n\n\u2022 v991 \u2014 PSF FWHM measured EXACTLY on the convolved profile (OTF product \u2192 inverse Hankel \u2192 half-maximum). Corrects the v990 MTF=\u00bd crossing (~10% wide) and removes the obstruction fudge constant. Verified to ~0.1%.\n\n\u2022 v989 \u2014 System B default is a real instrument (Celestron Origin 152 mm f/2.2, 41% obstruction); sampling verdict re-centred on Q = FWHM/1.6 (bands 1.4\u20132.2), target \u2033/px shown.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide as a modal (gold header button).\n\n\u2022 v984\u2013v987 \u2014 Procedural Reflection Nebula (Faint): wide field, spread illuminators, IFN cirrus, veiled illuminator, organic dust with dark lanes.\n\n\u2022 v980\u2013v983 \u2014 Realism-imperfection strengths retuned; upload blur edge reverted to clamp; IMX415 sensor added.\n\n\u2022 v960\u2013v979 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric; GPU galaxy path removed; dual PNG/GIF flash export; boot-splash fix; Whites slider.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -1299,7 +1299,7 @@ const SIM_VERSION = "v1007";
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v1007</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v1008</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -10437,8 +10437,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         //     under-sampled rigs (the original v797 flaw).
         //   useLanczos2 (0.5 ≤ canvas_to_src ≤ 1.01): mild upsample, smooth
         //     interpolation. PixInsight standard for screen views around 1:1.
-        const useBoxAvg2  = _v400ThisCall && (canvas_to_src > 1.01);
-        const useNearest2 = _v400ThisCall && !useBoxAvg2 && (canvas_to_src < 0.5);
+        // v1008: "per-pixel" view — when the canvas is coarser than the source,
+        // take ONE native pixel per canvas pixel (nearest neighbour) instead of
+        // box-averaging, so on-screen grain matches the per-native-pixel SNR.
+        // This discards (canvas_to_src^2 - 1) of every canvas_to_src^2 pixels.
+        const _perPixelView = samplingViewMode === "per-pixel";
+        const useBoxAvg2  = _v400ThisCall && !_perPixelView && (canvas_to_src > 1.01);
+        const useNearest2 = _v400ThisCall && !useBoxAvg2 && (canvas_to_src < 0.5 || (_perPixelView && canvas_to_src > 1.01));
         const useLanczos2 = _v400ThisCall && !useBoxAvg2 && !useNearest2;
 
         // v602 — WASM path for Lanczos-3 and box-avg. If wasmRef exposes
@@ -11699,7 +11704,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       // system accent colour (A gold / B teal).
       try {
         const _rk = (selfColor === "#5fb3a1") ? "B" : "A";
-        regionMapRef.current[_rk] = { map: probeMap, peak: mapPeak, RW, RH };
+        regionMapRef.current[_rk] = { map: probeMap, peak: mapPeak, RW, RH, arcsecPerPx: display_arcsec_per_canvaspx };
       } catch (e) { /* ref not ready */ }
       
       if (mapPeak > 0) {
@@ -12197,12 +12202,29 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         }
       }
       if (!fr.length) return null;
-      return d.regionStats(fr);
+      const st = d.regionStats(fr);
+      if (!st) return null;
+      // v1008: canvas pixels -> sensor pixels. snrAtFraction's signal is per
+      // captured (binned, pre-drizzle) pixel, so count those. Total signal is
+      // then drizzle/binning-invariant: same sky patch, same photons.
+      const aPx = rm.arcsecPerPx || d.pixel_scale;
+      const capPx = d.perframe_pixel_scale || d.pixel_scale;
+      const n_sensor_px = fr.length * (aPx / capPx) * (aPx / capPx);
+      return { ...st, arcsec_per_canvas_px: aPx, n_sensor_px,
+               total_signal_e: st.mean_signal_e * n_sensor_px,
+               disc_diam_arcsec: 2 * disc.r * aPx };
     };
     setDiscStats({ A: mk("A", dA), B: mk("B", dB) });
   }, [discOn, disc, dA, dB]);
 
   useEffect(() => { computeDiscStats(); }, [computeDiscStats, renderDone]);
+  // v1008: per-system canvas scale (″ per canvas px) after each render, for the
+  // per-pixel-view captions.
+  const [canvasArcsec, setCanvasArcsec] = useState({ A: null, B: null });
+  useEffect(() => {
+    const r = regionMapRef.current || {};
+    setCanvasArcsec({ A: r.A ? r.A.arcsecPerPx : null, B: r.B ? r.B.arcsecPerPx : null });
+  }, [renderDone]);
 
   // v999: draggable region disc overlay (SVG) sized in native RW×RH coords but
   // rendered over a CSS-scaled canvas. Pointer coords are converted via the
@@ -12440,7 +12462,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       const psfSegs = (which) => {
         const fa = which === "A"; const d = fa ? dA : dB;
         const samp = fa ? sampA_eff : sampB_eff, bin = fa ? binFactorA : binFactorB;
-        const matched = samplingViewMode !== "native";
+        const matched = samplingViewMode === "match-coarser";
         const ps = matched ? samp.effective_pixel_scale : d.pixel_scale;
         const sr = matched ? samp.ratio : d.sampling_ratio;
         const col = sampColor(sr);
@@ -14544,7 +14566,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                       }}>?</button>
                     <div style={{ display: "flex", gap: 4 }}>
                       {[
-                        { v: "native",        label: "Native" },
+                        { v: "native",        label: "Same sky scale (averaged)" },
+                        { v: "per-pixel",     label: "Per-pixel grain (1:1)" },
                         { v: "match-coarser", label: "Match higher px scale" },
                       ].map(({ v, label }) => (
                         <button key={v}
@@ -14556,9 +14579,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                             padding: "5px 12px", fontFamily: "JetBrains Mono, monospace",
                             fontSize: 10, cursor: "pointer", borderRadius: 2,
                             fontWeight: samplingViewMode === v ? 600 : 400,
-                            opacity: (v !== "native" && !ratioMeaningful) ? 0.55 : 1,
+                            opacity: (v === "match-coarser" && !ratioMeaningful) ? 0.55 : 1,
                           }}
-                          title={(v !== "native" && !ratioMeaningful)
+                          title={(v === "match-coarser" && !ratioMeaningful)
                             ? `Pixel-scale ratio is ${ratio.toFixed(2)}× — matched-sampling has minimal visual effect.`
                             : undefined}
                         >{label}</button>
@@ -14594,10 +14617,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                     When two systems have different native pixel scales (a fast f/4 vs a slow f/12 on the same sensor, say), each captures noise at its own sensor pixel grid. This toggle selects the <i>display</i> sampling — what grid the noisy electrons are aggregated to before drawing on the canvas. The chosen grid now drives the per-pixel numbers too, not just the picture: SNR, the noise breakdown, and the under-image pixel scale all report at the displayed grid. Point-source limiting magnitude and the optical MTF stay native, because rebinning the display does not change matched-filter point-source SNR or optical resolution.
                   </p>
                   <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 12px" }}>
-                    <span style={{ color: "#d4a437", fontWeight: 600 }}>Native</span>
-                    <span>Each system shown at its own sensor pixel scale, Lanczos-resampled to the canvas. Honest about per-pixel grain — what one un-binned native frame looks like at the camera grid. The fast-f-ratio system wins per pixel because each pixel covers more sky area, integrating more photons per measurement.</span>
+                    <span style={{ color: "#d4a437", fontWeight: 600 }}>Same sky scale (averaged)</span>
+                    <span>Each system's noise is simulated at its own sensor pixels, then fitted to the canvas: box-averaged when the canvas pixel is coarser than the sensor pixel, Lanczos-enlarged when finer. Every canvas pixel is the same patch of sky in both panels, so the on-screen noise is noise per patch of sky (like IntegerResample/Resample in PixInsight). A finer-sampled system pools several pixels per canvas pixel and looks cleaner — that is its real per-arcsec² advantage. The per-pixel SNR panel stays per native pixel.</span>
+                    <span style={{ color: "#d4a437", fontWeight: 600 }}>Per-pixel grain (1:1)</span>
+                    <span>Like a plain crop viewed at 1:1: when the canvas pixel is coarser than the sensor pixel, ONE native pixel is shown per canvas pixel (nearest neighbour) and the rest are skipped, so the grain matches the per-native-pixel SNR panel. Not a depth comparison — it discards data. To see a finer system at 1:1 without discarding anything, lower Zoom details instead.</span>
                     <span style={{ color: "#d4a437", fontWeight: 600 }}>Match higher px scale</span>
-                    <span>Both systems aggregated to the coarser scale = max(px<sub>A</sub>, px<sub>B</sub>): the finer system’s electrons are box-averaged by N = round(coarser/finer) then Lanczos-resampled; the coarser is unchanged. σ per displayed pixel drops by N, so per-pixel SNR rises by N — the fair per-arcsec² comparison where the bigger aperture shows. Matching to the finer system would upsample the coarser one (no new information), so only this direction is offered.</span>
+                    <span>Both systems aggregated to the coarser scale = max(px<sub>A</sub>, px<sub>B</sub>): the finer system's electrons are box-averaged by N = coarser/finer, the coarser is unchanged. σ per displayed pixel drops by N, so per-pixel SNR rises by N — the fair per-pixel comparison where the bigger aperture shows. Matching to the finer system would upsample the coarser one (no new information), so only this direction is offered.</span>
                   </div>
                   <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid rgba(96, 116, 156, 0.15)", fontSize: 9, color: "#6a7894" }}>
                     Propagated — SNR readouts, noise breakdown, and the under-image pixel scale all switch to the displayed-grid values; only point-source limiting magnitude and the optical MTF stay native (resampling-invariant). The Match button dims when the pixel-scale ratio is below 1.4× (nothing meaningful to aggregate).
@@ -14873,7 +14898,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             )}
             {discOn && matchZoom && (
               <span style={{ fontSize: 9.5, color: "#6a7894" }}>
-                drag the ring to move · drag the handle to resize · {discStats?.A ? `${discStats.A.n_pixels} px` : "—"} · {(disc.r * 2 * (dA.pixel_scale || 0)).toFixed(0)}″ across
+                drag the ring to move · drag the handle to resize · {discStats?.A ? `${discStats.A.n_pixels} canvas px` : "—"} · {discStats?.A ? discStats.A.disc_diam_arcsec.toFixed(0) : "—"}″ across
               </span>
             )}
           </div>
@@ -14886,27 +14911,37 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                     System {lab} · region SNR
                   </div>
                   {!s ? <div style={{ color: "#6a7894", fontSize: 10 }}>render to measure</div> : (() => {
-                    const ratio = (o && o.snr_per_arcsec2_mean > 0) ? s.snr_per_arcsec2_mean / o.snr_per_arcsec2_mean : null;
-                    const row = (k, v, extra) => (
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "1.5px 0" }}>
+                    const other = lab === "A" ? "B" : "A";
+                    const f1 = (v) => v.toFixed(1);
+                    const fE = (v) => v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e4 ? (v / 1e3).toFixed(1) + "k" : v.toFixed(0);
+                    const f0 = (v) => v.toFixed(0);
+                    const grid = { display: "grid", gridTemplateColumns: "1fr auto 64px", gap: 6 };
+                    const row = (k, sv, ov, fmt) => (
+                      <div style={{ ...grid, fontSize: 11, padding: "1.5px 0" }}>
                         <span style={{ color: "#8b96a8" }}>{k}</span>
-                        <span style={{ color: "#c8d0dc" }}>{v}{extra}</span>
+                        <span style={{ color: "#c8d0dc", textAlign: "right" }}>{fmt(sv)}</span>
+                        <span style={{ color: col, textAlign: "right" }}>{(ov != null && ov > 0) ? `×${(sv / ov).toFixed(2)}` : "—"}</span>
                       </div>
                     );
-                    const c = s.components_e;
+                    const c = s.components_e, oc = o ? o.components_e : {};
                     return (
                       <div>
-                        {row("per-pixel SNR (mean)", s.snr_perpix_mean.toFixed(1))}
-                        {row("per-pixel SNR (median)", s.snr_perpix_median.toFixed(1))}
-                        {row("SNR / arcsec² (mean)", s.snr_per_arcsec2_mean.toFixed(1),
-                          ratio ? <span style={{ color: col, marginLeft: 6 }}>×{ratio.toFixed(2)} vs {lab === "A" ? "B" : "A"}</span> : null)}
+                        <div style={{ ...grid, fontSize: 9, color: "#6a7894", marginBottom: 2 }}>
+                          <span></span><span style={{ textAlign: "right" }}>value</span><span style={{ textAlign: "right" }}>vs {other}</span>
+                        </div>
+                        {row("per-pixel SNR (mean)", s.snr_perpix_mean, o?.snr_perpix_mean, f1)}
+                        {row("per-pixel SNR (median)", s.snr_perpix_median, o?.snr_perpix_median, f1)}
+                        {row("SNR / arcsec² (mean)", s.snr_per_arcsec2_mean, o?.snr_per_arcsec2_mean, f1)}
+                        {row("SNR / arcsec² (median)", s.snr_per_arcsec2_median, o?.snr_per_arcsec2_median, f1)}
+                        {row("total signal in disc · e⁻", s.total_signal_e, o?.total_signal_e, fE)}
+                        {row("sensor pixels in disc", s.n_sensor_px, o?.n_sensor_px, f0)}
                         <div style={{ borderTop: "1px solid rgba(96,116,156,0.2)", margin: "5px 0", paddingTop: 4 }}>
-                          <div style={{ fontSize: 9, color: "#6a7894", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>region-mean noise · e⁻</div>
-                          {row("sky", c.sky.toFixed(1))}
-                          {row("dark", c.dark.toFixed(1))}
-                          {row("read", c.read.toFixed(1))}
-                          {row("signal shot", c.signal.toFixed(1))}
-                          {row("total", c.total.toFixed(1))}
+                          <div style={{ fontSize: 9, color: "#6a7894", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>noise per sensor pixel (region mean) · e⁻</div>
+                          {row("sky", c.sky, oc.sky, f1)}
+                          {row("dark", c.dark, oc.dark, f1)}
+                          {row("read", c.read, oc.read, f1)}
+                          {row("signal shot", c.signal, oc.signal, f1)}
+                          {row("total", c.total, oc.total, f1)}
                         </div>
                         {s.correlated && (
                           <div style={{ fontSize: 9, color: "#c98a4f", marginTop: 4, lineHeight: 1.4 }}>
@@ -14967,7 +15002,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               </div>
               <div style={{ marginTop: 4, fontSize: 9, color: "#6a7894", textAlign: "center" }}>
                 {(() => {
-                  const matched = samplingViewMode !== "native";
+                  const matched = samplingViewMode === "match-coarser";
                   const ps = matched ? sampA_eff.effective_pixel_scale : dA.pixel_scale;
                   const sr = matched ? sampA_eff.ratio : dA.sampling_ratio;
                   const col = sampColor(sr);
@@ -15027,6 +15062,16 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   Drizzle ceiling view — assumes ideal sub-pixel coverage from your dither pattern. Real result sits between this and the per-frame view.
                 </div>
               )}
+              {samplingViewMode === "per-pixel" && canvasArcsec.A && (() => {
+                const n = canvasArcsec.A / dA.pixel_scale;
+                return (
+                  <div style={{ marginTop: 4, fontSize: 9, color: "#5fb3a1", textAlign: "center", fontStyle: "italic", lineHeight: 1.4, padding: "0 8px" }}>
+                    {n > 1.01
+                      ? `Per-pixel view — canvas pixel = ${n.toFixed(1)}× system A's pixel: 1 of every ${(n * n).toFixed(0)} sensor pixels shown (nearest neighbour, no averaging). Grain matches per-pixel SNR; not a depth comparison.`
+                      : `Per-pixel view — system A is shown at or coarser than its sensor sampling; nothing discarded.`}
+                  </div>
+                );
+              })()}
               {samplingViewMode === "match-coarser" && binFactorA > 1.01 && (
                 <div style={{ marginTop: 4, fontSize: 9, color: "#5fb3a1", textAlign: "center", fontStyle: "italic", lineHeight: 1.4, padding: "0 8px" }}>
                   Matched view — system A (finer) binned ×{binFactorA.toFixed(1)} to the coarser pixel scale {Math.max(dA.pixel_scale, dB.pixel_scale).toFixed(2)}″/px. Aggregated at captured-buffer scale; per-pixel SNR and noise reflect this grid.
@@ -15071,7 +15116,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
               </div>
               <div style={{ marginTop: 4, fontSize: 9, color: "#6a7894", textAlign: "center" }}>
                 {(() => {
-                  const matched = samplingViewMode !== "native";
+                  const matched = samplingViewMode === "match-coarser";
                   const ps = matched ? sampB_eff.effective_pixel_scale : dB.pixel_scale;
                   const sr = matched ? sampB_eff.ratio : dB.sampling_ratio;
                   const col = sampColor(sr);
@@ -15123,6 +15168,16 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   Drizzle ceiling view — assumes ideal sub-pixel coverage from your dither pattern. Real result sits between this and the per-frame view.
                 </div>
               )}
+              {samplingViewMode === "per-pixel" && canvasArcsec.B && (() => {
+                const n = canvasArcsec.B / dB.pixel_scale;
+                return (
+                  <div style={{ marginTop: 4, fontSize: 9, color: "#d4a437", textAlign: "center", fontStyle: "italic", lineHeight: 1.4, padding: "0 8px" }}>
+                    {n > 1.01
+                      ? `Per-pixel view — canvas pixel = ${n.toFixed(1)}× system B's pixel: 1 of every ${(n * n).toFixed(0)} sensor pixels shown (nearest neighbour, no averaging). Grain matches per-pixel SNR; not a depth comparison.`
+                      : `Per-pixel view — system B is shown at or coarser than its sensor sampling; nothing discarded.`}
+                  </div>
+                );
+              })()}
               {samplingViewMode === "match-coarser" && binFactorB > 1.01 && (
                 <div style={{ marginTop: 4, fontSize: 9, color: "#d4a437", textAlign: "center", fontStyle: "italic", lineHeight: 1.4, padding: "0 8px" }}>
                   Matched view — system B (finer) binned ×{binFactorB.toFixed(1)} to the coarser pixel scale {Math.max(dA.pixel_scale, dB.pixel_scale).toFixed(2)}″/px. Aggregated at captured-buffer scale; per-pixel SNR and noise reflect this grid.
@@ -15138,7 +15193,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             const color = fa ? "#d4a437" : "#5fb3a1";
             const samp = fa ? sampA_eff : sampB_eff;
             const bin = fa ? binFactorA : binFactorB;
-            const matched = samplingViewMode !== "native";
+            const matched = samplingViewMode === "match-coarser";
             const ps = matched ? samp.effective_pixel_scale : d.pixel_scale;
             const sr = matched ? samp.ratio : d.sampling_ratio;
             const col = sampColor(sr);
@@ -15242,7 +15297,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                 ).join(" ")}
               </span>
             )}
-            {samplingViewMode !== "native" && (
+            {samplingViewMode === "match-coarser" && (
               <span style={{ color: "#d4a437", display: "block", marginTop: 4 }}>
                 Matched view (higher px scale) — SNR, σ and the noise breakdown show DISPLAY values at the coarser grid.
                 {binFactorA > 1.01 && ` A binned ×${binFactorA.toFixed(2)} → SNR ×${binFactorA.toFixed(2)}, σ ÷${binFactorA.toFixed(2)}.`}
@@ -15612,7 +15667,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                       <div style={{ width: `${(samplingEquiv / max) * 100}%`, height: "100%", background: "#a8b0c2", opacity: 0.6 }}></div>
                     </div>
                     <div style={{ marginTop: 3, fontSize: 9, color: "#6a7894", fontStyle: "italic" }}>
-                      = 0.68 × {effPix.toFixed(2)}″/px{samplingViewMode !== "native" && bin > 1.01 ? ` (display, ×${bin.toFixed(1)} from native ${d.pixel_scale.toFixed(2)}″)` : ` (incl. binning ×${d.bin_area > 0 ? Math.sqrt(d.bin_area).toFixed(0) : "1"}, drizzle)`}
+                      = 0.68 × {effPix.toFixed(2)}″/px{samplingViewMode === "match-coarser" && bin > 1.01 ? ` (display, ×${bin.toFixed(1)} from native ${d.pixel_scale.toFixed(2)}″)` : ` (incl. binning ×${d.bin_area > 0 ? Math.sqrt(d.bin_area).toFixed(0) : "1"}, drizzle)`}
                     </div>
                   </div>
                   {/* Image-total + verdict */}
@@ -15636,8 +15691,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
           isOpen={openSections.mtf} onToggle={() => toggleSection("mtf")}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", gap: 14, fontSize: 10, fontFamily: "JetBrains Mono, monospace" }}>
-              <span style={{ color: sampA_eff.color }}>A: {sampA_eff.effective_pixel_scale.toFixed(2)}″/px · {sampA_eff.ratio.toFixed(1)} px/FWHM · {sampA_eff.verdict}{samplingViewMode !== "native" && binFactorA > 1.01 ? ` · ×${binFactorA.toFixed(1)} binned` : ""}</span>
-              <span style={{ color: sampB_eff.color }}>B: {sampB_eff.effective_pixel_scale.toFixed(2)}″/px · {sampB_eff.ratio.toFixed(1)} px/FWHM · {sampB_eff.verdict}{samplingViewMode !== "native" && binFactorB > 1.01 ? ` · ×${binFactorB.toFixed(1)} binned` : ""}</span>
+              <span style={{ color: sampA_eff.color }}>A: {sampA_eff.effective_pixel_scale.toFixed(2)}″/px · {sampA_eff.ratio.toFixed(1)} px/FWHM · {sampA_eff.verdict}{samplingViewMode === "match-coarser" && binFactorA > 1.01 ? ` · ×${binFactorA.toFixed(1)} binned` : ""}</span>
+              <span style={{ color: sampB_eff.color }}>B: {sampB_eff.effective_pixel_scale.toFixed(2)}″/px · {sampB_eff.ratio.toFixed(1)} px/FWHM · {sampB_eff.verdict}{samplingViewMode === "match-coarser" && binFactorB > 1.01 ? ` · ×${binFactorB.toFixed(1)} binned` : ""}</span>
             </div>
             <div style={{ display: "flex", gap: 12, fontSize: 10, flexWrap: "wrap" }}>
               <span style={{ color: "#d4a437" }}>━ A optical</span>
@@ -16205,7 +16260,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
                   <div><span style={{ color: "#c95d4f", fontWeight: 700 }}>Red</span> = undersampled: drizzle or reduce pixel size.</div>
                   <div><span style={{ color: "#d4a437", fontWeight: 700 }}>Orange</span> = excessively oversampled: bin or increase pixel size.</div>
                   <div style={{ marginTop: 4 }}><sup>*</sup> Includes the effect of convolution of the optical PSF by square pixels.</div>
-                  {samplingViewMode !== "native" && (binFactorA > 1.01 || binFactorB > 1.01) && (
+                  {samplingViewMode === "match-coarser" && (binFactorA > 1.01 || binFactorB > 1.01) && (
                     <div style={{ marginTop: 4, color: "#d4a437" }}>
                       Matched view: plate scale and all px-count / sampling rows are shown at the coarser displayed grid
                       {binFactorA > 1.01 ? ` (A ×${binFactorA.toFixed(1)})` : ""}{binFactorB > 1.01 ? ` (B ×${binFactorB.toFixed(1)})` : ""}. Optical arcsec rows stay native.
