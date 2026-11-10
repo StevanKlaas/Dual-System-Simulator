@@ -1288,8 +1288,8 @@ function fwhmFromMTF(aperture_mm, seeing_arcsec, guide_rms_arcsec, eps, pixel_sc
   return nu_half > 0 ? FWHM_FROM_NU_HALF / nu_half : 0;
 }
 
-const SIM_VERSION = "v1008";
-  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v1008 \u2014 Sampling view: \u201cNative\u201d renamed \u201cSame sky scale (averaged)\u201d (it box-averages a finer system onto the canvas), plus a new \u201cPer-pixel grain (1:1)\u201d mode that shows one sensor pixel per canvas pixel (nearest neighbour) so on-screen grain matches the per-pixel SNR panel, with a caption saying how many pixels are skipped. Region probe: added total signal in the disc (e\u207b), sensor pixels in the disc, SNR/arcsec\u00b2 median, and an A-vs-B / B-vs-A multiplier on every row; the disc\u2019s \u2033-across readout now uses the canvas scale (it used A\u2019s sensor pixel scale).\n\n\u2022 v1007 \u2014 Added the OmniVision OV50Q40 in native (unbinned) mode as \u201cDraco Planetary\u201d: 1.2 \u00b5m pixels, 8192\u00d76144. Read noise 1.4 e\u207b, full well 750 e\u207b and dark 0.00091 e\u207b/s/px at 0 \u00b0C, derived from the 2\u00d72-binned Draco DSO values assuming digital binning, so Draco Planetary at bin 2 reproduces Draco DSO. Sensor info line now shows sub-10k full wells to one decimal (was rounding 750 e\u207b to 1Ke).\n\n\u2022 v1006 \u2014 Added the OmniVision OV50Q40 sensor (Draco DSO): 2.4 \u00b5m pixels (2\u00d72-binned mode of the 50 MP chip, 4096\u00d73072, 1/1.3\u2033), read noise 2.8 e\u207b at HCG, full well 3000 e\u207b, dark current matched to the OS08B10. QE is a provisional 80% placeholder pending a measured value.\n\n\u2022 v1005 \u2014 Added the Draco Duo Band 13 nm (H\u03b1/OIII) filter: 13 nm on each line, transmission 0.90, continuum leak 0.078 (26 nm total passband, ~11.5\u00d7 sky suppression vs UV/IR cut). Sits between the 20/30 nm Duo-band and the 7 nm L-eXtreme in the dropdown, ordered by bandwidth.\n\n\u2022 v1004 \u2014 Added the L-Ultimate 3 nm/3 nm dual-band filter: H\u03b1 and OIII transmission 0.90, continuum leak 0.018 (6 nm total passband, ~50\u00d7 sky suppression vs UV/IR cut \u2014 the narrowest option, crushing the sky ~2.4\u00d7 harder than the 7 nm L-eXtreme).\n\n\u2022 v1003 \u2014 OS08B10 dark current corrected to its measured S50 Pro model I(T)=0.178\u00b72^((T\u221227.5)/4.90): dark_0c 0.00687 \u2192 0.00364 e\u207b/s/px (doubling 4.90 unchanged). The sensor runs ~1.9\u00d7 cooler than the ASI585, not equal to it \u2014 the earlier placeholder overstated its dark current ~2\u00d7. ASI585 dark model checked against its own measured curve and left unchanged (within ~6% across \u221220..30 \u00b0C).\n\n\u2022 v1002 \u2014 ASI585 read noise / full well corrected against a measured SharpCap gain table: HCG point is now the real gain-200 row (read noise 1.04 e\u207b, HCG full well 3794 e\u207b) instead of 0.7 e\u207b / 2500 e\u207b \u2014 the old 0.7 floor only exists at gain 600 where the well collapses to ~35 e\u207b (unusable), so it was flattering the sensor. Linear full well set to the measured 39369 e\u207b. OS08B10 values confirmed against its own measured table (gain 150: 0.86 e\u207b, 2809 e\u207b) \u2014 no change.\n\n\u2022 v1001 \u2014 OS08B10: pixel size and sensor dimensions set to match the ASI585 (2.9 \u00b5m, 11.1\u00d76.3 mm, 1/1.2\u2033), peak QE 84%.\n\n\u2022 v1000 \u2014 Added the OmniVision OS08B10 sensor (Seestar S50 Pro): read noise 0.86 e\u207b, full well 2809 e\u207b, dark current matched to the ASI585.\n\n\u2022 v999 \u2014 Region probe (interactive). A draggable, resizable disc over the A/B (and flash) canvases measures SNR and its noise components for the enclosed sky region: per-pixel SNR (mean & median), SNR/arcsec\u00b2 with \u00d7N vs the other system, and region-mean sky/dark/read/signal-shot noise in electrons. Gated to Match-zoom (both panels share a pixel scale, so one disc probes the identical sky region in A and B); the same disc persists across the Flash A/B blink. Drizzled regions carry the noise-correlation caveat. Built on the v998 regionStats math (validated to reproduce the point-probe SNR).\n\n\u2022 v998 \u2014 Region-probe math layer (data only; UI next): each derived system exposes regionStats(fractions) that reuses the per-pixel noise model over an arbitrary set of enclosed pixels and returns mean & median per-pixel SNR, SNR/arcsec\u00b2, region-mean noise components (sky/dark/read/FPN/signal), and a correlated flag for drizzled data. Validated that a full-frame region reproduces the point-probe SNR.\n\n\u2022 v997 \u2014 Rewrote the \u201cDetected % of target\u201d ? popover in plainer language: the 3\u03c3-per-arcsec\u00b2 idea, why the metric is per-arcsec\u00b2 rather than per-pixel (binning/drizzle can\u2019t inflate it), and the two flavours reported (extended detection % at 3\u03c3 and point-source m_lim at 5\u03c3).\n\n\u2022 v996 \u2014 Follow-up to v995: the display stretch anchor (peakRate) now also scales by 1/drizzle\u00b2, in both the per-system equal-brightness path and the shared-stretch path. v995 correctly lowered each drizzled pixel to its 1/drizzle\u00b2 photon share, but the white point still referenced the native peak, so the drizzled panel rendered ~9\u00d7 too dark. Anchor and pixels now share the same per-pixel scale \u2014 equal-brightness matching holds, and drizzled vs non-drizzled differ only in real noise/sampling, not overall brightness.\n\n\u2022 v995 \u2014 Critical drizzle render fix. The synthetic image painted each drizzled output pixel with the full native-pixel photon count instead of its 1/drizzle\u00b2 share, so a 3\u00d7 drizzle gave every one of 9 pixels the whole flux \u2014 effectively 9\u00d7 the photons, lifting per-pixel SNR by \u00d73 and faking a bigger-aperture / darker-sky look (smoother background, faint arms and clusters climbing out of the noise). The electron means (signal, sky, dark) now divide by drizzle\u00b2, giving each finer pixel its correct photon share and an identical background noise floor per unit sky area whether drizzled or not. Star-peak normalization (native scale) and read noise (per readout pixel) unaffected. This is the render-side counterpart to the v994 statistics fix.\n\n\u2022 v994 \u2014 Honest drizzle model. Drizzle still divides photons across D\u00b2 output pixels (per-pixel SNR \u00d71/D), but it is now only credited with *recovering* detail when the per-frame data is undersampled (< ~1.4 px/FWHM) and dithered (assumed present) \u2014 on well/over-sampled data it adds no resolution, only a smoother look from the eye integrating over more pixels. And because the drizzle kernel spreads each photon across neighbouring output pixels, the per-pixel \u03c3 is flagged as noise-correlated (it understates the true noise per resolution element); the honest, drizzle-invariant figure is SNR/arcsec\u00b2. A per-system verdict now states which case applies.\n\n\u2022 v993 \u2014 Fixed point-source m_lim improving ~0.75 mag per binning step: the background variance used native sky/dark rates while read noise was binned and the aperture shrank as 1/bin_area. Now uses binned rates \u2014 m_lim is exactly binning-invariant.\n\n\u2022 v992 \u2014 Documentation swept for the retired PSF model (\u00a72.2/2.6/2.8/3.3, analysis table, in-app caption): all now describe the exact convolved-profile FWHM with the Hankel equation; Image FWHM readouts use the exact delivered value.\n\n\u2022 v991 \u2014 PSF FWHM measured EXACTLY on the convolved profile (OTF product \u2192 inverse Hankel \u2192 half-maximum). Corrects the v990 MTF=\u00bd crossing (~10% wide) and removes the obstruction fudge constant. Verified to ~0.1%.\n\n\u2022 v989 \u2014 System B default is a real instrument (Celestron Origin 152 mm f/2.2, 41% obstruction); sampling verdict re-centred on Q = FWHM/1.6 (bands 1.4\u20132.2), target \u2033/px shown.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide as a modal (gold header button).\n\n\u2022 v984\u2013v987 \u2014 Procedural Reflection Nebula (Faint): wide field, spread illuminators, IFN cirrus, veiled illuminator, organic dust with dark lanes.\n\n\u2022 v980\u2013v983 \u2014 Realism-imperfection strengths retuned; upload blur edge reverted to clamp; IMX415 sensor added.\n\n\u2022 v960\u2013v979 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric; GPU galaxy path removed; dual PNG/GIF flash export; boot-splash fix; Whites slider.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history.";
+const SIM_VERSION = "v1009";
+  const SIM_VERSION_NOTE = "Release notes (most recent first).\n\n\u2022 v1009 \u2014 New built-in target \u201cM51 Whirlpool \u00b7 Hubble (real linear data)\u201d: a linear, starless Hubble M51 (1428\u00d7940, 0.40\u2033/px) served from /targets/M51.fits, fetched on first selection and loaded through the normal FITS path with preset display defaults (black point 0.02, Intensity 1.00\u00d7, Shadows +0.10, Saturation 1.5\u00d7). Detection % for uploaded and built-in images is now referenced to the Bright-probe level (99.5th percentile) with the black point subtracted, instead of the single brightest pixel \u2014 a bright nucleus no longer pushes the whole target below threshold.\n\n\u2022 v1008 \u2014 Sampling view: \u201cNative\u201d renamed \u201cSame sky scale (averaged)\u201d (it box-averages a finer system onto the canvas), plus a new \u201cPer-pixel grain (1:1)\u201d mode that shows one sensor pixel per canvas pixel (nearest neighbour) so on-screen grain matches the per-pixel SNR panel, with a caption saying how many pixels are skipped. Region probe: added total signal in the disc (e\u207b), sensor pixels in the disc, SNR/arcsec\u00b2 median, and an A-vs-B / B-vs-A multiplier on every row; the disc\u2019s \u2033-across readout now uses the canvas scale (it used A\u2019s sensor pixel scale).\n\n\u2022 v1007 \u2014 Added the OmniVision OV50Q40 in native (unbinned) mode as \u201cDraco Planetary\u201d: 1.2 \u00b5m pixels, 8192\u00d76144. Read noise 1.4 e\u207b, full well 750 e\u207b and dark 0.00091 e\u207b/s/px at 0 \u00b0C, derived from the 2\u00d72-binned Draco DSO values assuming digital binning, so Draco Planetary at bin 2 reproduces Draco DSO. Sensor info line now shows sub-10k full wells to one decimal (was rounding 750 e\u207b to 1Ke).\n\n\u2022 v1006 \u2014 Added the OmniVision OV50Q40 sensor (Draco DSO): 2.4 \u00b5m pixels (2\u00d72-binned mode of the 50 MP chip, 4096\u00d73072, 1/1.3\u2033), read noise 2.8 e\u207b at HCG, full well 3000 e\u207b, dark current matched to the OS08B10. QE is a provisional 80% placeholder pending a measured value.\n\n\u2022 v1005 \u2014 Added the Draco Duo Band 13 nm (H\u03b1/OIII) filter: 13 nm on each line, transmission 0.90, continuum leak 0.078 (26 nm total passband, ~11.5\u00d7 sky suppression vs UV/IR cut). Sits between the 20/30 nm Duo-band and the 7 nm L-eXtreme in the dropdown, ordered by bandwidth.\n\n\u2022 v1004 \u2014 Added the L-Ultimate 3 nm/3 nm dual-band filter: H\u03b1 and OIII transmission 0.90, continuum leak 0.018 (6 nm total passband, ~50\u00d7 sky suppression vs UV/IR cut \u2014 the narrowest option, crushing the sky ~2.4\u00d7 harder than the 7 nm L-eXtreme).\n\n\u2022 v1003 \u2014 OS08B10 dark current corrected to its measured S50 Pro model I(T)=0.178\u00b72^((T\u221227.5)/4.90): dark_0c 0.00687 \u2192 0.00364 e\u207b/s/px (doubling 4.90 unchanged). The sensor runs ~1.9\u00d7 cooler than the ASI585, not equal to it \u2014 the earlier placeholder overstated its dark current ~2\u00d7. ASI585 dark model checked against its own measured curve and left unchanged (within ~6% across \u221220..30 \u00b0C).\n\n\u2022 v1002 \u2014 ASI585 read noise / full well corrected against a measured SharpCap gain table: HCG point is now the real gain-200 row (read noise 1.04 e\u207b, HCG full well 3794 e\u207b) instead of 0.7 e\u207b / 2500 e\u207b \u2014 the old 0.7 floor only exists at gain 600 where the well collapses to ~35 e\u207b (unusable), so it was flattering the sensor. Linear full well set to the measured 39369 e\u207b. OS08B10 values confirmed against its own measured table (gain 150: 0.86 e\u207b, 2809 e\u207b) \u2014 no change.\n\n\u2022 v1001 \u2014 OS08B10: pixel size and sensor dimensions set to match the ASI585 (2.9 \u00b5m, 11.1\u00d76.3 mm, 1/1.2\u2033), peak QE 84%.\n\n\u2022 v1000 \u2014 Added the OmniVision OS08B10 sensor (Seestar S50 Pro): read noise 0.86 e\u207b, full well 2809 e\u207b, dark current matched to the ASI585.\n\n\u2022 v999 \u2014 Region probe (interactive). A draggable, resizable disc over the A/B (and flash) canvases measures SNR and its noise components for the enclosed sky region: per-pixel SNR (mean & median), SNR/arcsec\u00b2 with \u00d7N vs the other system, and region-mean sky/dark/read/signal-shot noise in electrons. Gated to Match-zoom (both panels share a pixel scale, so one disc probes the identical sky region in A and B); the same disc persists across the Flash A/B blink. Drizzled regions carry the noise-correlation caveat. Built on the v998 regionStats math (validated to reproduce the point-probe SNR).\n\n\u2022 v998 \u2014 Region-probe math layer (data only; UI next): each derived system exposes regionStats(fractions) that reuses the per-pixel noise model over an arbitrary set of enclosed pixels and returns mean & median per-pixel SNR, SNR/arcsec\u00b2, region-mean noise components (sky/dark/read/FPN/signal), and a correlated flag for drizzled data. Validated that a full-frame region reproduces the point-probe SNR.\n\n\u2022 v997 \u2014 Rewrote the \u201cDetected % of target\u201d ? popover in plainer language: the 3\u03c3-per-arcsec\u00b2 idea, why the metric is per-arcsec\u00b2 rather than per-pixel (binning/drizzle can\u2019t inflate it), and the two flavours reported (extended detection % at 3\u03c3 and point-source m_lim at 5\u03c3).\n\n\u2022 v996 \u2014 Follow-up to v995: the display stretch anchor (peakRate) now also scales by 1/drizzle\u00b2, in both the per-system equal-brightness path and the shared-stretch path. v995 correctly lowered each drizzled pixel to its 1/drizzle\u00b2 photon share, but the white point still referenced the native peak, so the drizzled panel rendered ~9\u00d7 too dark. Anchor and pixels now share the same per-pixel scale \u2014 equal-brightness matching holds, and drizzled vs non-drizzled differ only in real noise/sampling, not overall brightness.\n\n\u2022 v995 \u2014 Critical drizzle render fix. The synthetic image painted each drizzled output pixel with the full native-pixel photon count instead of its 1/drizzle\u00b2 share, so a 3\u00d7 drizzle gave every one of 9 pixels the whole flux \u2014 effectively 9\u00d7 the photons, lifting per-pixel SNR by \u00d73 and faking a bigger-aperture / darker-sky look (smoother background, faint arms and clusters climbing out of the noise). The electron means (signal, sky, dark) now divide by drizzle\u00b2, giving each finer pixel its correct photon share and an identical background noise floor per unit sky area whether drizzled or not. Star-peak normalization (native scale) and read noise (per readout pixel) unaffected. This is the render-side counterpart to the v994 statistics fix.\n\n\u2022 v994 \u2014 Honest drizzle model. Drizzle still divides photons across D\u00b2 output pixels (per-pixel SNR \u00d71/D), but it is now only credited with *recovering* detail when the per-frame data is undersampled (< ~1.4 px/FWHM) and dithered (assumed present) \u2014 on well/over-sampled data it adds no resolution, only a smoother look from the eye integrating over more pixels. And because the drizzle kernel spreads each photon across neighbouring output pixels, the per-pixel \u03c3 is flagged as noise-correlated (it understates the true noise per resolution element); the honest, drizzle-invariant figure is SNR/arcsec\u00b2. A per-system verdict now states which case applies.\n\n\u2022 v993 \u2014 Fixed point-source m_lim improving ~0.75 mag per binning step: the background variance used native sky/dark rates while read noise was binned and the aperture shrank as 1/bin_area. Now uses binned rates \u2014 m_lim is exactly binning-invariant.\n\n\u2022 v992 \u2014 Documentation swept for the retired PSF model (\u00a72.2/2.6/2.8/3.3, analysis table, in-app caption): all now describe the exact convolved-profile FWHM with the Hankel equation; Image FWHM readouts use the exact delivered value.\n\n\u2022 v991 \u2014 PSF FWHM measured EXACTLY on the convolved profile (OTF product \u2192 inverse Hankel \u2192 half-maximum). Corrects the v990 MTF=\u00bd crossing (~10% wide) and removes the obstruction fudge constant. Verified to ~0.1%.\n\n\u2022 v989 \u2014 System B default is a real instrument (Celestron Origin 152 mm f/2.2, 41% obstruction); sampling verdict re-centred on Q = FWHM/1.6 (bands 1.4\u20132.2), target \u2033/px shown.\n\n\u2022 v988 \u2014 Embedded the Parameter Effects Guide as a modal (gold header button).\n\n\u2022 v984\u2013v987 \u2014 Procedural Reflection Nebula (Faint): wide field, spread illuminators, IFN cirrus, veiled illuminator, organic dust with dark lanes.\n\n\u2022 v980\u2013v983 \u2014 Realism-imperfection strengths retuned; upload blur edge reverted to clamp; IMX415 sensor added.\n\n\u2022 v960\u2013v979 \u2014 SNR/arcsec\u00b2 + \u00d7N; detection-fraction metric; GPU galaxy path removed; dual PNG/GIF flash export; boot-splash fix; Whites slider.\n\nv100\u2013v959 \u2014 (archived) Full lineage in git history.";
 
   // ============================================================
   // v220: Embedded documentation. Three sections — Description,
@@ -1299,7 +1299,7 @@ const SIM_VERSION = "v1008";
   // ============================================================
   const DOC_HTML = `
 <div class="doc-root">
-<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v1008</span></h1>
+<h1 class="doc-title">Two Systems · Two Skies <span class="version-pill">v1009</span></h1>
 
 <p class="subtitle">Side-by-side dual-rig astrophotography simulator — application overview, indicator glossary, and the physics behind every number.</p>
 
@@ -2034,6 +2034,23 @@ const SIM_VERSION = "v1008";
       aperture_comparison_arcmin: 11,
       actual_displayed_arcmin: 30,
     },
+    // v1009: built-in real-sky target. Linear, starless Hubble M51 (B/V/I + Ha
+    // mixed to RGB), 1428x940 at 0.40"/px, shipped in the deployment at
+    // public/targets/M51.fits and fetched on first selection, then run through
+    // the normal FITS upload path. No WCS in the header, so the field comes
+    // from bake_field_arcsec = 940 rows x 0.40" = 376". `preset` holds the
+    // display defaults applied after the load.
+    m51_hubble: {
+      label: "M51 Whirlpool \u00b7 Hubble (real linear data)",
+      broadband: 1.0, ha: 1.0, oiii: 1.0, channelMode: "broadband_rgb", kind: "image_target",
+      bake_W: 2560, bake_H: 1600,
+      bakeHasStars: false,
+      preloadUrl: "/targets/M51.fits",
+      bake_field_arcsec: 376,
+      preset: { blackPoint: 0.02, stretchIntensity: 1.0, shadowsLift: 1.10, colorSaturation: 1.5 },
+      aperture_comparison_arcmin: 3,
+      actual_displayed_arcmin: 9.5,
+    },
     emission_neb: { 
       label: "Emission nebula · Hα-rich, chiseled (Eagle, Heart-like)",
       broadband: 0.6, ha: 1.4, oiii: 0.20, channelMode: "narrowband", kind: "emission",
@@ -2498,7 +2515,7 @@ const SIM_VERSION = "v1008";
     }
   }
 
-  async function handleFITSUpload(file, targetKey) {
+  async function handleFITSUpload(file, targetKey, preset) {
     const t = TARGETS[targetKey];
     if (!t || t.kind !== 'image_target') {
       setUploadStatus({ kind: 'error', text: 'Selected target is not an image_target.', progress: 0, info: null });
@@ -2632,10 +2649,20 @@ const SIM_VERSION = "v1008";
       // there). Applied to FITS too because a calibrated linear FITS coming
       // from a remote-telescope provider can still benefit from a gentler
       // stretch and the black point reset \u2014 the user can dial them up.
+      if (preset) {
+        // v1009: built-in image targets carry their own display defaults.
+        setStretchIntensity(preset.stretchIntensity);
+        setShadowsLift(preset.shadowsLift);
+        setColorSaturation(preset.colorSaturation);
+        if (userUploadCacheRef.current[targetKey]) {
+          userUploadCacheRef.current[targetKey].bakeBlackPoint = preset.blackPoint;
+        }
+      } else {
       setStretchIntensity(2.5);  // v922: display shows 0.40×
       setShadowsLift(0.40);  // v922: extreme-left, max crush per user spec
       if (userUploadCacheRef.current[targetKey]) {
         userUploadCacheRef.current[targetKey].bakeBlackPoint = 0;
+      }
       }
       setUserUploadEpoch(e => e + 1);
       // v912: auto-fire the render right after upload so the user sees the
@@ -2658,6 +2685,27 @@ const SIM_VERSION = "v1008";
     // immediately. v906 left it gated behind the sticky button.
     setRenderToken(t => t + 1);
   }
+  // v1009: built-in image targets (preloadUrl) are fetched from the deployment
+  // the first time they are selected, then handled exactly like an upload.
+  useEffect(() => {
+    const tt = TARGETS[target];
+    if (!tt || !tt.preloadUrl || userUploadCacheRef.current[target]) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setUploadStatus({ kind: 'loading', text: 'Downloading ' + tt.label + '\u2026', progress: 0.02, info: null });
+        const res = await fetch(tt.preloadUrl);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        if (cancelled) return;
+        const name = tt.preloadUrl.split('/').pop();
+        await handleFITSUpload({ name, size: buf.byteLength, arrayBuffer: async () => buf }, target, tt.preset);
+      } catch (err) {
+        if (!cancelled) setUploadStatus({ kind: 'error', text: 'Could not load the built-in image (' + tt.preloadUrl + '): ' + err.message, progress: 0, info: null });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [target]);
   useEffect(() => {
     if (typeof window === "undefined" || !("WebAssembly" in window)) return;
     let cancelled = false;
@@ -8338,8 +8386,23 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       const ha = m && m.ha, oi = m && m.oiii, bb = m && m.bb;
       if (!ha || !bb) return null;
       const N = ha.length; const L = new Float32Array(N); let peak = 0;
-      for (let i = 0; i < N; i++) { const v = (ha[i] || 0) + (oi ? (oi[i] || 0) : 0) + (bb[i] || 0); L[i] = v; if (v > peak) peak = v; }
+      // v1009: image targets (uploads / built-in FITS). Their planes are scaled so
+      // the 99.5th percentile = 1, and that level is what the SNR panel's "Bright"
+      // probe represents; a compact nucleus can sit 50x above it. Referencing the
+      // histogram to the absolute maximum put the whole galaxy at <1% of "peak"
+      // and made detection read ~2%. Reference it to the Bright level instead
+      // (pixels above it count as detected), and subtract the black point per
+      // plane so a background pedestal is not counted as target.
+      const _isImg = TARGETS[target] && TARGETS[target].kind === "image_target";
+      const _up = _isImg ? userUploadCacheRef.current[target] : null;
+      const _bp = (_up && typeof _up.bakeBlackPoint === "number") ? _up.bakeBlackPoint : 0;
+      for (let i = 0; i < N; i++) {
+        const v = _isImg
+          ? Math.max(0, (ha[i] || 0) - _bp) + (oi ? Math.max(0, (oi[i] || 0) - _bp) : 0) + Math.max(0, (bb[i] || 0) - _bp)
+          : (ha[i] || 0) + (oi ? (oi[i] || 0) : 0) + (bb[i] || 0);
+        L[i] = v; if (v > peak) peak = v; }
       if (peak <= 0) return null;
+      if (_isImg) peak = Math.min(peak, (oi ? 3 : 2) * Math.max(0.05, 1 - _bp));
       const ISO = 0.001, isoCut = ISO * peak, BINS = 512, logMin = Math.log(ISO), inv = BINS / (0 - logMin);
       const hist = new Float64Array(BINS + 1); let obj = 0;
       for (let i = 0; i < N; i++) { const v = L[i]; if (v < isoCut) continue; obj++;
